@@ -1,106 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anmeldung mit reCAPTCHA</title>
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <style>
-    /* Allgemeine Stile für die Seite */
-    body {
-      background-color: #000;
-      color: #fff;
-      font-family: 'Arial Black', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      flex-direction: column; /* In Spalte anordnen */
-      overflow: hidden; /* Verhindert Scrollen */
-      position: relative; /* Relative Position für das Muster */
-    }
-
-    /* Stile für den Titel */
-    .title {
-      font-size: 120px; /* Sehr große Schriftgröße */
-      font-weight: bold; /* Fettschrift */
-      letter-spacing: 10px; /* Großer Zwischenbuchstabenabstand */
-      text-transform: uppercase; /* Großbuchstaben */
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6); /* Schatten */
-      margin-bottom: 40px; /* Abstand nach unten */
-      transform: skew(-10deg); /* Verzerrung */
-      z-index: 10; /* Stellt sicher, dass der Text über dem Hintergrundmuster liegt */
-    }
-
-    /* Stile für das Hintergrundmuster */
-    .background-pattern {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Cpath fill-opacity="0.1" fill="%23fff" d="M20 0c11.046 0 20 8.954 20 20s-8.954 20-20 20S0 31.046 0 20 8.954 0 20 0zm0 7c-7.732 0-14 6.268-14 14s6.268 14 14 14 14-6.268 14-14-6.268-14-14-14z"/%3E%3C/svg%3E');
-      pointer-events: none; /* Klicks durchlassen */
-      z-index: 1; /* Hintergrundmuster hinter dem Text */
-    }
-
-    /* Stile für das Formular */
-    form {
-      background-color: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px); /* Hintergrundunschärfe */
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      z-index: 10; /* Stellt sicher, dass das Formular über dem Hintergrundmuster liegt */
-    }
-    h2 {
-      text-align: center;
-    }
-    label {
-      display: block;
-      margin-bottom: 10px;
-    }
-    input[type="text"], input[type="password"], input[type="submit"] {
-      width: calc(100% - 24px); /* Abzüglich des Padding */
-      padding: 12px;
-      margin-bottom: 15px;
-      border: none;
-      border-radius: 4px;
-      font-size: 18px; /* Größere Schriftgröße für Input */
-      text-align: center;
-      background-color: #333;
-      color: #ddd;
-      box-sizing: border-box; /* Berücksichtigt das Padding in der Gesamtbreite */
-    }
-    .g-recaptcha {
-      margin-bottom: 15px;
-    }
-    input[type="submit"] {
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-    input[type="submit"]:hover {
-      background-color: #45a049;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Cube Viewer</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
-  <div class="background-pattern"></div>
-  <div class="title">
-    ᗡIΞID
-  </div>
-  <form action="#" method="POST">
-    <h2>Anmeldung</h2>
-    <label for="username">Benutzername:</label>
-    <input type="text" id="username" name="username" required>
-    <label for="password">Passwort (mindestens 8 Zeichen):</label>
-    <input type="password" id="password" name="password" pattern=".{8,}" required title="Passwort muss mindestens 8 Zeichen lang sein">
-    <label for="confirm_password">Passwort bestätigen:</label>
-    <input type="password" id="confirm_password" name="confirm_password" pattern=".{8,}" required title="Passwort muss mindestens 8 Zeichen lang sein">
-    <div class="g-recaptcha" data-sitekey="6Ldanv8pAAAAAG87I_ausXauelxYcvWsML3gVyLf"></div>
-    <input type="submit" value="Anmelden">
-  </form>
+    <audio id="background-music" loop>
+        <source src="background-music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script>
+        // Create the scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Light blue sky
+
+        // Create a camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.y = 1.6; // Position the camera at eye level
+
+        // Create a renderer
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // Enable shadow maps
+        document.body.appendChild(renderer.domElement);
+
+        // Create a directional light
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 7.5);
+        light.castShadow = true;
+        light.shadow.mapSize.width = 1024;
+        light.shadow.mapSize.height = 1024;
+        light.shadow.camera.near = 0.5;
+        light.shadow.camera.far = 50;
+        scene.add(light);
+
+        // Create a geometry for the floor (plane)
+        const floorGeometry = new THREE.PlaneGeometry(100, 100, 1, 1); // Adjust size as needed
+
+        // Create a material for the floor
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // Green color
+
+        // Create the floor mesh
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2; // Rotate to be flat on the ground
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Create a geometry for the cube
+        const cubeGeometry = new THREE.BoxGeometry();
+
+        // Create a material for the cube
+        const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+
+        // Create a cube mesh
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.position.y = 1; // Position the cube above the floor
+        cube.castShadow = true;
+        scene.add(cube);
+
+        // Create PointerLockControls
+        const controls = new THREE.PointerLockControls(camera, renderer.domElement);
+
+        document.body.addEventListener('click', () => {
+            controls.lock();
+        });
+
+        // Movement variables
+        const moveSpeed = 0.1;
+        const jumpSpeed = 0.2;
+        const gravity = 0.01;
+        const keys = { w: false, a: false, s: false, d: false, space: false };
+        let velocityY = 0;
+        let canJump = false;
+
+        document.addEventListener('keydown', (event) => {
+            keys[event.key.toLowerCase()] = true;
+            if (event.key === ' ') {
+                keys.space = true;
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            keys[event.key.toLowerCase()] = false;
+            if (event.key === ' ') {
+                keys.space = false;
+            }
+        });
+
+        // Start background music
+        const backgroundMusic = document.getElementById('background-music');
+        backgroundMusic.play();
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Handle movement
+            if (keys.w) controls.moveForward(moveSpeed);
+            if (keys.s) controls.moveForward(-moveSpeed);
+            if (keys.a) controls.moveRight(-moveSpeed);
+            if (keys.d) controls.moveRight(moveSpeed);
+
+            // Handle jumping
+            if (keys.space && canJump) {
+                velocityY = jumpSpeed;
+                canJump = false;
+            }
+
+            // Apply gravity
+            if (!canJump) {
+                velocityY -= gravity;
+                camera.position.y += velocityY;
+
+                if (camera.position.y <= 1.6) {
+                    camera.position.y = 1.6;
+                    velocityY = 0;
+                    canJump = true;
+                }
+            }
+
+            // Rotate the cube
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+
+            renderer.render(scene, camera);
+        }
+
+        // Start the animation loop
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    </script>
 </body>
 </html>
