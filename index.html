@@ -108,6 +108,30 @@
     </div>
 
     <script>
+        // Überprüfen, ob localStorage unterstützt wird
+        if (typeof(Storage) !== "undefined") {
+            // Funktion zum Laden der gespeicherten Nachrichten
+            function loadChatHistory() {
+                const savedMessages = localStorage.getItem('chatMessages');
+                if (savedMessages) {
+                    document.getElementById('messages').innerHTML = savedMessages;
+                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                }
+            }
+
+            // Funktion zum Speichern einer neuen Nachricht
+            function saveMessage(message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.textContent = message;
+                document.getElementById('messages').appendChild(messageDiv);
+                localStorage.setItem('chatMessages', document.getElementById('messages').innerHTML);
+                document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            }
+
+            // Beim Laden der Seite Chatverlauf laden
+            window.onload = loadChatHistory;
+        }
+
         let username;
         let channel;
         let ws;
@@ -135,10 +159,8 @@
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.cmd === 'chat') {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.textContent = `${data.nick}: ${data.text}`;
-                    document.getElementById('messages').appendChild(messageDiv);
-                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    const message = `${data.nick}: ${data.text}`;
+                    saveMessage(message);
                 }
             };
 
