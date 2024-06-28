@@ -1,189 +1,191 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ꓷIΞID</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            background-color: #1f1f1f;
+            color: #fff;
+            font-family: Arial, sans-serif;
             margin: 0;
-        }
-        h1 {
-            color: #bb86fc;
-        }
-        .container {
+            padding: 0;
             display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 600px;
-            padding: 20px;
-            box-sizing: border-box;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        .hidden {
-            display: none;
-        }
-        #chatContainer {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        #messages {
-            flex: 1;
-            width: 100%;
-            background-color: #1e1e1e;
-            border: 1px solid #333;
+        .chat-container {
+            background-color: #2a2a2a;
             border-radius: 8px;
+            width: 300px;
+            height: 400px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background-color: #1a1a1a;
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        .logo {
+            width: 80px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .messages {
+            flex: 1;
             padding: 10px;
             overflow-y: auto;
-            margin-bottom: 10px;
         }
-        #messages div {
-            margin-bottom: 10px;
+        .message {
+            background-color: #333;
+            color: #fff;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-bottom: 5px;
         }
-        #messageInputContainer {
+        .message.you {
+            color: blue;
+        }
+        .message.stranger {
+            color: red;
+        }
+        .message .sender {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .input-container {
             display: flex;
-            width: 100%;
-        }
-        #messageInput {
-            flex: 1;
+            align-items: center;
             padding: 10px;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background-color: #2c2c2c;
-            color: #ffffff;
-            margin-right: 10px;
+            border-top: 1px solid #333;
         }
-        #sendButton {
-            padding: 10px 20px;
+        .input-container input[type="text"] {
+            flex: 1;
+            padding: 8px;
             border: none;
-            border-radius: 8px;
-            background-color: #bb86fc;
-            color: #ffffff;
+            outline: none;
+            background-color: #333;
+            color: #fff;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .input-container input[type="submit"] {
+            margin-left: 10px;
+            padding: 8px 15px;
+            border: none;
+            outline: none;
+            background-color: #4CAF50;
+            color: #fff;
+            font-size: 14px;
             cursor: pointer;
+            border-radius: 5px;
             transition: background-color 0.3s;
         }
-        #sendButton:hover {
-            background-color: #9f6efb;
-        }
-        input, select {
-            padding: 10px;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background-color: #2c2c2c;
-            color: #ffffff;
-            margin-bottom: 10px;
+        .input-container input[type="submit"]:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <h1>ꓷIΞID</h1>
-    <div id="loginContainer" class="container">
-        <input type="text" id="usernameInput" placeholder="Benutzername eingeben">
-        <select id="channelSelect">
-            <option value="channel1">Channel 1</option>
-            <option value="channel2">Channel 2</option>
-            <option value="channel3">Channel 3</option>
-        </select>
-        <button id="loginButton">Anmelden</button>
-    </div>
-    <div id="chatContainer" class="container hidden">
-        <div id="messages"></div>
-        <div id="messageInputContainer">
-            <input type="text" id="messageInput" placeholder="Nachricht eingeben...">
-            <button id="sendButton">Senden</button>
-            <select id="channelChange">
-                <option value="channel1">Channel 1</option>
-                <option value="channel2">Channel 2</option>
-                <option value="channel3">Channel 3</option>
-            </select>
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="logo.png" alt="Logo" class="logo">
+        </div>
+        <div class="messages" id="messages">
+            <!-- Messages will be dynamically added here -->
+        </div>
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <input type="submit" value="Send" onclick="sendMessage()">
         </div>
     </div>
 
     <script>
-        // Überprüfen, ob localStorage unterstützt wird
-        if (typeof(Storage) !== "undefined") {
-            // Funktion zum Laden der gespeicherten Nachrichten
-            function loadChatHistory() {
-                const savedMessages = localStorage.getItem('chatMessages');
-                if (savedMessages) {
-                    document.getElementById('messages').innerHTML = savedMessages;
-                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-                }
-            }
-
-            // Funktion zum Speichern einer neuen Nachricht
-            function saveMessage(message) {
-                const messageDiv = document.createElement('div');
-                messageDiv.textContent = message;
-                document.getElementById('messages').appendChild(messageDiv);
-                localStorage.setItem('chatMessages', document.getElementById('messages').innerHTML);
-                document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-            }
-
-            // Beim Laden der Seite Chatverlauf laden
-            window.onload = loadChatHistory;
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
         }
 
-        let username;
-        let channel;
-        let ws;
+        // Retrieve or generate a user ID
+        let USER_ID = localStorage.getItem('userId');
+        if (!USER_ID) {
+            USER_ID = generateUUID();
+            localStorage.setItem('userId', USER_ID);
+        }
 
-        document.getElementById('loginButton').onclick = () => {
-            username = document.getElementById('usernameInput').value;
-            channel = document.getElementById('channelSelect').value;
+        var socket = new WebSocket("ws://147.185.221.20:44177");
 
-            if (username) {
-                document.getElementById('loginContainer').classList.add('hidden');
-                document.getElementById('chatContainer').classList.remove('hidden');
-                startChat();
-            } else {
-                alert('Bitte Benutzernamen eingeben');
+        function sendMessage() {
+            var messageInput = document.getElementById('messageInput');
+            var message = messageInput.value.trim();
+            if (message !== '') {
+                socket.send(JSON.stringify({'type': 'message', 'content': message, 'userId': USER_ID}));
+                messageInput.value = '';
+            }
+        }
+
+        function displayHistory(messages) {
+            var messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            messages.forEach(function(msg) {
+                var messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.classList.add(msg.userId === USER_ID ? 'you' : 'stranger');
+                var senderSpan = document.createElement('span');
+                senderSpan.classList.add('sender');
+                senderSpan.textContent = msg.userId === USER_ID ? 'You:' : 'Stranger:';
+                messageElement.appendChild(senderSpan);
+                var contentSpan = document.createElement('span');
+                contentSpan.textContent = msg.content;
+                messageElement.appendChild(contentSpan);
+                messagesDiv.appendChild(messageElement);
+            });
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        socket.onopen = function(event) {
+            console.log("WebSocket connected");
+            // Send the user ID to the server
+            socket.send(JSON.stringify({'type': 'connect', 'userId': USER_ID}));
+        };
+
+        socket.onmessage = function(event) {
+            var message = JSON.parse(event.data);
+            if (message.type === 'history') {
+                displayHistory(message.messages);
+            } else if (message.type === 'message') {
+                var messagesDiv = document.getElementById('messages');
+                var messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.classList.add(message.userId === USER_ID ? 'you' : 'stranger');
+                var senderSpan = document.createElement('span');
+                senderSpan.classList.add('sender');
+                senderSpan.textContent = message.userId === USER_ID ? 'You:' : 'Stranger:';
+                messageElement.appendChild(senderSpan);
+                var contentSpan = document.createElement('span');
+                contentSpan.textContent = message.content;
+                messageElement.appendChild(contentSpan);
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
         };
 
-        function startChat() {
-            ws = new WebSocket(`wss://hack.chat/chat-ws`);
+        socket.onclose = function(event) {
+            console.log("WebSocket disconnected");
+        };
 
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ cmd: 'join', channel: channel, nick: username }));
-            };
-
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.cmd === 'chat') {
-                    const message = `${data.nick}: ${data.text}`;
-                    saveMessage(message);
-                }
-            };
-
-            document.getElementById('sendButton').onclick = () => {
-                const messageInput = document.getElementById('messageInput');
-                const message = messageInput.value;
-                ws.send(JSON.stringify({ cmd: 'chat', text: message }));
-                messageInput.value = '';
-            };
-
-            document.getElementById('channelChange').onchange = () => {
-                const newChannel = document.getElementById('channelChange').value;
-                ws.send(JSON.stringify({ cmd: 'join', channel: newChannel, nick: username }));
-                channel = newChannel;
-                document.getElementById('messages').innerHTML = ''; // Clear previous messages
-            };
-
-            document.getElementById('messageInput').addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    document.getElementById('sendButton').click();
-                }
-            });
-        }
+        socket.onerror = function(error) {
+            console.error("WebSocket error: " + error);
+        };
     </script>
 </body>
 </html>
