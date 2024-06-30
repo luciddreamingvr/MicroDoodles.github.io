@@ -4,191 +4,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ꓷIΞID</title>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.34.0.min.js"></script>
     <style>
         body {
-            background-color: #1f1f1f;
-            color: #fff;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212; /* Dark background */
             margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.2) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.2) 75%, rgba(0, 0, 0, 0.2)), linear-gradient(45deg, rgba(0, 0, 0, 0.2) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.2) 75%, rgba(0, 0, 0, 0.2)); /* Striped pattern */
         }
-        .chat-container {
-            background-color: #2a2a2a;
-            border-radius: 8px;
-            width: 300px;
-            height: 400px;
+        
+        #chat {
+            background-color: rgba(255, 255, 255, 0.1); /* Transparent white chat background */
+            backdrop-filter: blur(10px); /* Blur effect for transparency */
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 400px;
+            max-width: 90%;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
             display: flex;
             flex-direction: column;
         }
-        .chat-header {
-            background-color: #1a1a1a;
-            padding: 10px;
+
+        #logo {
+            width: 100%;
+            padding: 20px 0;
             text-align: center;
-            border-bottom: 1px solid #333;
         }
-        .logo {
-            width: 80px;
-            height: auto;
-            display: block;
-            margin: 0 auto;
+
+        #logo img {
+            max-width: 80px;
         }
-        .messages {
+        
+        #messages {
             flex: 1;
-            padding: 10px;
+            padding: 20px;
             overflow-y: auto;
+            scrollbar-width: thin;
         }
-        .message {
-            background-color: #333;
-            color: #fff;
-            border-radius: 5px;
-            padding: 5px 10px;
-            margin-bottom: 5px;
+        
+        #messages::-webkit-scrollbar {
+            width: 8px;
         }
-        .message.you {
-            color: blue;
+        
+        #messages::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 4px;
         }
-        .message.stranger {
-            color: red;
-        }
-        .message .sender {
-            font-weight: bold;
-            margin-right: 5px;
-        }
-        .input-container {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-top: 1px solid #333;
-        }
-        .input-container input[type="text"] {
-            flex: 1;
-            padding: 8px;
+        
+        #messageInput {
+            padding: 12px;
             border: none;
+            background-color: rgba(255, 255, 255, 0.1); /* Transparent white input background */
+            border-bottom-left-radius: 12px;
+            width: calc(100% - 64px);
+            font-size: 16px;
+            color: #ffffff; /* Light text color */
             outline: none;
-            background-color: #333;
-            color: #fff;
-            border-radius: 5px;
-            font-size: 14px;
         }
-        .input-container input[type="submit"] {
-            margin-left: 10px;
-            padding: 8px 15px;
+        
+        #messageInput:focus {
+            background-color: rgba(255, 255, 255, 0.2); /* Lighter input background on focus */
+        }
+        
+        #sendButton {
+            padding: 12px 20px;
+            background-color: #4CAF50; /* Green Send button */
             border: none;
-            outline: none;
-            background-color: #4CAF50;
-            color: #fff;
-            font-size: 14px;
+            color: #ffffff;
             cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
+            border-bottom-right-radius: 12px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            outline: none;
         }
-        .input-container input[type="submit"]:hover {
-            background-color: #45a049;
+        
+        #sendButton:hover {
+            background-color: #45a049; /* Darker green on hover */
+        }
+        
+        .message {
+            background-color: rgba(255, 255, 255, 0.1); /* Transparent white message background */
+            color: #ffffff; /* Light text color */
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin: 5px 20px;
+            max-width: 70%;
+            align-self: flex-end;
+            position: relative;
+        }
+        
+        .message::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+        }
+        
+        .message.me {
+            background-color: #388e3c; /* Dark green for own messages */
+            align-self: flex-start;
+        }
+        
+        .message.me::before {
+            border-right: 10px solid #388e3c;
+            right: -10px;
+        }
+        
+        .message.other::before {
+            border-left: 10px solid rgba(255, 255, 255, 0.1); /* Transparent white for other messages */
+            left: -10px;
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <img src="logo.png" alt="Logo" class="logo">
+    <div id="chat">
+        <div id="logo">
+            <img src="logo.png" alt="Logo">
         </div>
-        <div class="messages" id="messages">
-            <!-- Messages will be dynamically added here -->
-        </div>
-        <div class="input-container">
+        <div id="messages"></div>
+        <div style="display: flex; align-items: center;">
             <input type="text" id="messageInput" placeholder="Type your message...">
-            <input type="submit" value="Send" onclick="sendMessage()">
+            <button id="sendButton" onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
+        const publishKey = 'demo';
+        const subscribeKey = 'demo';
+        const channelName = 'puravida';
 
-        // Retrieve or generate a user ID
-        let USER_ID = localStorage.getItem('userId');
-        if (!USER_ID) {
-            USER_ID = generateUUID();
-            localStorage.setItem('userId', USER_ID);
-        }
-
-        // Determine WebSocket URL based on the current protocol
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socketUrl = `${protocol}//147.185.221.20:44177`;
-        var socket = new WebSocket(socketUrl);
+        const pubnub = new PubNub({
+            publishKey: publishKey,
+            subscribeKey: subscribeKey,
+            uuid: PubNub.generateUUID()
+        });
 
         function sendMessage() {
-            var messageInput = document.getElementById('messageInput');
-            var message = messageInput.value.trim();
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
             if (message !== '') {
-                socket.send(JSON.stringify({'type': 'message', 'content': message, 'userId': USER_ID}));
-                messageInput.value = '';
+                pubnub.publish({
+                    channel: channelName,
+                    message: message,
+                }, (status, response) => {
+                    if (status.error) {
+                        console.error(status.errorData);
+                    } else {
+                        console.log('Message published successfully');
+                        displayMessage('Me', message); // Display own message after sending
+                        messageInput.value = ''; // Clear input field after sending
+                    }
+                });
             }
         }
 
-        function displayHistory(messages) {
-            var messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML = '';
-            messages.forEach(function(msg) {
-                var messageElement = document.createElement('div');
-                messageElement.classList.add('message');
-                messageElement.classList.add(msg.userId === USER_ID ? 'you' : 'stranger');
-                var senderSpan = document.createElement('span');
-                senderSpan.classList.add('sender');
-                senderSpan.textContent = msg.userId === USER_ID ? 'You:' : 'Stranger:';
-                messageElement.appendChild(senderSpan);
-                var contentSpan = document.createElement('span');
-                contentSpan.textContent = msg.content;
-                messageElement.appendChild(contentSpan);
-                messagesDiv.appendChild(messageElement);
-            });
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        function displayMessage(sender, message) {
+            const messagesContainer = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender === 'Me' ? 'me' : 'other');
+            messageElement.textContent = message;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        socket.onopen = function(event) {
-            console.log("WebSocket connected");
-            // Send the user ID to the server
-            socket.send(JSON.stringify({'type': 'connect', 'userId': USER_ID}));
-        };
-
-        socket.onmessage = function(event) {
-            var message = JSON.parse(event.data);
-            if (message.type === 'history') {
-                displayHistory(message.messages);
-            } else if (message.type === 'message') {
-                var messagesDiv = document.getElementById('messages');
-                var messageElement = document.createElement('div');
-                messageElement.classList.add('message');
-                messageElement.classList.add(message.userId === USER_ID ? 'you' : 'stranger');
-                var senderSpan = document.createElement('span');
-                senderSpan.classList.add('sender');
-                senderSpan.textContent = message.userId === USER_ID ? 'You:' : 'Stranger:';
-                messageElement.appendChild(senderSpan);
-                var contentSpan = document.createElement('span');
-                contentSpan.textContent = message.content;
-                messageElement.appendChild(contentSpan);
-                messagesDiv.appendChild(messageElement);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        pubnub.addListener({
+            message: function(message) {
+                console.log('Received message:', message);
+                if (message.publisher !== pubnub.getUUID()) {
+                    displayMessage('Other', message.message); // Display received message
+                }
             }
-        };
+        });
 
-        socket.onclose = function(event) {
-            console.log("WebSocket disconnected");
-        };
-
-        socket.onerror = function(error) {
-            console.error("WebSocket error: " + error);
-        };
+        pubnub.subscribe({
+            channels: [channelName],
+            withPresence: true
+        });
     </script>
 </body>
 </html>
