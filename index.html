@@ -101,7 +101,7 @@
         // Use the canvas as a texture for the floor
         const patternTexture = new THREE.CanvasTexture(patternCanvas);
         const floorGeometry = new THREE.PlaneGeometry(20, 20);
-        const floorMaterial = new THREE.MeshStandardMaterial({ map: patternTexture, side: THREE.DoubleSide });
+        const floorMaterial = new THREE.MeshBasicMaterial({ map: patternTexture, side: THREE.DoubleSide });
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = - Math.PI / 2; // Make the plane horizontal
         scene.add(floor);
@@ -109,17 +109,9 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.5, 0); // Position the camera to match the player's height
 
-        // Add lighting to the scene
-        const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-        scene.add(ambientLight);
-
-        const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-        pointLight.position.set(10, 10, 10);
-        scene.add(pointLight);
-
         // Player
         const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
-        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 }); // Gelb
+        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
         player.visible = false; // Hide player mesh for first-person view
         scene.add(player);
@@ -156,131 +148,35 @@
             }
         }
 
-        // Function to set a cookie
-        function setCookie(name, value, days) {
-            let expires = "";
-            if (days) {
-                const date = new Date();
-                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-                expires = "; expires=" + date.toUTCString();
-            }
-            document.cookie = name + "=" + (value || "") + expires + "; path=/";
-        }
-
-        // Function to get a cookie
-        function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-            }
-            return null;
-        }
-
-        // Function to erase a cookie
-        function eraseCookie(name) {
-            document.cookie = name + '=; Max-Age=-99999999;';
-        }
-
-        // Save player position and rotation to a cookie before leaving the game
-        function savePlayerState() {
-            const position = player.position;
-            const rotation = player.rotation.y;
-            setCookie('playerPosition', JSON.stringify({ x: position.x, y: position.y, z: position.z }), 7);
-            setCookie('playerRotation', rotation, 7);
-        }
-
-        // Load player position and rotation from the cookie when the game starts
-        function loadPlayerState() {
-            const positionCookie = getCookie('playerPosition');
-            const rotationCookie = getCookie('playerRotation');
-            
-            if (positionCookie && rotationCookie) {
-                const position = JSON.parse(positionCookie);
-                player.position.set(position.x, position.y, position.z);
-                player.rotation.y = parseFloat(rotationCookie);
-            }
-        }
-
         function startGame() {
+            // Generate a random player ID
             playerID = Math.floor(Math.random() * 10000);
 
+            // Hide name form
             document.getElementById('nameForm').style.display = 'none';
 
+            // Request pointer lock
             canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
             canvas.requestPointerLock();
 
             document.addEventListener('mousemove', onMouseMove);
 
+            // Play background music
             const audio = new Audio('music.m4a');
-            audio.loop = true;
+            audio.loop = true; // Loop the music
             audio.play();
 
-            loadPlayerState();  // Load player's last position and rotation
-
-            initializeLevel();
             animate();
         }
 
-        function create3DObject(type, x, y, z, scale, rotation, color) {
-            let geometry, material, mesh;
-
-            const objectMaterial = new THREE.MeshStandardMaterial({ color: color }); // Set color and shading
-
-            switch(type) {
-                case 'cube':
-                    geometry = new THREE.BoxGeometry();
-                    material = objectMaterial;
-                    mesh = new THREE.Mesh(geometry, material);
-                    break;
-                case 'sphere':
-                    geometry = new THREE.SphereGeometry(1, 32, 32);
-                    material = objectMaterial;
-                    mesh = new THREE.Mesh(geometry, material);
-                    break;
-                case 'cone':
-                    geometry = new THREE.ConeGeometry(1, 2, 32);
-                    material = objectMaterial;
-                    mesh = new THREE.Mesh(geometry, material);
-                    break;
-                default:
-                    console.error('Unrecognized object type');
-                    return;
-            }
-
-            mesh.position.set(x, y, z);
-            mesh.scale.set(scale.x, scale.y, scale.z);
-            mesh.rotation.set(rotation.x, rotation.y, rotation.z);
-
-            scene.add(mesh);
-        }
-
-        // Define level design with coordinates, scale, and rotation
-        const levelDesign = [
-            { type: 'cube', x: 15, y: 0, z: 0, scale: { x: 1, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, color: 0xffff00 },
-            { type: 'cube', x: 20, y: 0, z: 0, scale: { x: 1, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, color: 0xffff00 },
-            { type: 'cube', x: 25, y: 0, z: 0, scale: { x: 1, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, color: 0xffff00 },
-            { type: 'cube', x: 30, y: 0, z: 0, scale: { x: 1, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, color: 0xffff00 },
-            { type: 'cube', x: 35, y: 0, z: 0, scale: { x: 1, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, color: 0xffff00 },
-            { type: 'cube', x: 40, y: 0, z: 0, scale: { x: 1, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, color: 0xffff00 }
-        ];
-
-        function initializeLevel() {
-            levelDesign.forEach(object => {
-                create3DObject(object.type, object.x, object.y, object.z, object.scale, object.rotation, object.color);
-            });
-        }
-
         function updatePlayerPosition() {
-            const speed = 0.1; // Movement speed
+            const previousPosition = { ...player.position }; // Save the current position
 
-            const forward = new THREE.Vector3();
-            const right = new THREE.Vector3();
-            const previousPosition = { ...player.position };
-            const lastRotation = player.rotation.y;
+            const forward = new THREE.Vector3(); // Forward direction vector
+            const right = new THREE.Vector3();   // Right direction vector
+            const speed = 0.15;
 
+            // Determine direction based on player rotation
             player.getWorldDirection(forward);
             forward.negate(); // Reversed because the forward direction is negative in THREE.js
 
@@ -327,7 +223,7 @@
                 player.position.x !== previousPosition.x ||
                 player.position.y !== previousPosition.y ||
                 player.position.z !== previousPosition.z ||
-                player.rotation.y !== lastRotation
+                player.rotation.y !== lastPosition.rotation
             ) {
                 pubnub.publish({
                     channel: channelName,
@@ -352,36 +248,36 @@
             renderer.render(scene, camera);
         }
 
+        // Funktion zum Erstellen einer "Mensch ärgere dich nicht"-Figur
         function createPlayerFigure(color) {
-            const group = new THREE.Group(); // A group to hold the cone and sphere
+            const group = new THREE.Group(); // Eine Gruppe, um Kegel und Kugel zusammenzuhalten
 
-            // Cone for the body
+            // Kegel für den Körper
             const coneGeometry = new THREE.ConeGeometry(1, 3, 32);
-            const coneMaterial = new THREE.MeshStandardMaterial({ color: color });
+            const coneMaterial = new THREE.MeshBasicMaterial({ color: color });
             const cone = new THREE.Mesh(coneGeometry, coneMaterial);
-            cone.position.y = -0.15; // Place the base of the cone on y=0
+            cone.position.y = -0.15; // Setze die Basis des Kegels auf y=0
             group.add(cone);
 
-            // Sphere for the head
+            // Kugel für den Kopf
             const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-            const sphereMaterial = new THREE.MeshStandardMaterial({ color: color });
+            const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
             const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sphere.position.y = 1 + 0.5; // Position the sphere on top of the cone
+            sphere.position.y = 1 + 0.5; // Setze die Kugel auf den Kegel
             group.add(sphere);
 
             return group;
         }
 
-        // Add a new player
+        // Funktion zum Hinzufügen eines neuen Spielers
         pubnub.addListener({
             message: function(message) {
                 if (message.publisher !== pubnub.getUUID()) {
                     const data = message.message;
 
                     if (!players[data.id]) {
-                        // Create the figure instead of a cube
-                        const playerColor = data.id === playerID ? 0xffff00 : 0x00ff00; // Gelb für den eigenen Spieler, Grün für andere
-                        const playerFigure = createPlayerFigure(playerColor);
+                        // Erstellen der Figur statt eines Würfels
+                        const playerFigure = createPlayerFigure(0xff0000);
                         players[data.id] = playerFigure;
                         scene.add(players[data.id]);
                     }
