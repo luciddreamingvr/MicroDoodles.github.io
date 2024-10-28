@@ -1,119 +1,326 @@
 <!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | ObbyBox2</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
-  </head>
-  <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawlex</title>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.29.3.js"></script>
+    <style>
+        /* Allgemeines Design */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1b1b1f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            max-width: 90%;
+            margin-top: 20px;
+        }
+
+        #paintCanvas {
+            border: 2px solid #292a36;
+            cursor: crosshair;
+            background-color: #0c0c10;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.2);
+        }
+
+        #controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: #ccccff;
+        }
+
+        input, button {
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            background-color: #292a36;
+            color: #00ffff;
+            outline: none;
+            font-size: 1rem;
+            box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00cccc;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        #coordinates {
+            font-size: 1rem;
+            text-align: center;
+            color: #00ffff;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="paintCanvas" width="800" height="600"></canvas>
+
+        <div id="controls">
+            <div class="control-group">
+                <label for="hexColor">HEX</label>
+                <input type="text" id="hexColor" value="#00ffff" maxlength="7" placeholder="#00ffff">
+            </div>
+            <div class="control-group">
+                <label for="sizePicker">Size</label>
+                <input type="range" id="sizePicker" min="5" max="50" value="15">
+            </div>
+            <button onclick="clearCanvas()">Empty</button>
+            <button onclick="saveProject()">Save</button>
+            <button onclick="loadProject()">Load</button>
+            <button onclick="mixPoints()">Mix</button> <!-- Neuer Button -->
+            <input type="file" id="fileInput" style="display: none;" accept=".sxs" onchange="handleFileImport(event)">
+            <button onclick="exportImage()">Export</button>
         </div>
-      </div>
-      <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-webgl-logo"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">ObbyBox2</div>
-      </div>
+
+        <div id="coordinates">(X: 0, Y: 0)</div>
     </div>
+
     <script>
-      var container = document.querySelector("#unity-container");
-      var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-      var warningBanner = document.querySelector("#unity-warning");
-
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
-      }
-
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/New folder (3).loader.js";
-      var config = {
-        dataUrl: buildUrl + "/New folder (3).data",
-        frameworkUrl: buildUrl + "/New folder (3).framework.js",
-        codeUrl: buildUrl + "/New folder (3).wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "Nelken's",
-        productName: "ObbyBox2",
-        productVersion: "0.1",
-        showBanner: unityShowBanner,
-      };
-
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        container.className = "unity-mobile";
-        canvas.className = "unity-mobile";
-
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-        unityShowBanner('WebGL builds are not supported on mobile devices.');
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
-      }
-
-      loadingBar.style.display = "block";
-
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-        }).then((unityInstance) => {
-          loadingBar.style.display = "none";
-          fullscreenButton.onclick = () => {
-            unityInstance.SetFullscreen(1);
-          };
-        }).catch((message) => {
-          alert(message);
+        // PubNub initialisieren
+        const pubnub = new PubNub({
+            publishKey: 'demo',
+            subscribeKey: 'demo',
+            uuid: 'user_' + Math.random().toString(36).substr(2, 9)
         });
-      };
-      document.body.appendChild(script);
+
+        const canvas = document.getElementById("paintCanvas");
+        const ctx = canvas.getContext("2d");
+        const hexColor = document.getElementById("hexColor");
+        const sizePicker = document.getElementById("sizePicker");
+        const coordinatesDiv = document.getElementById("coordinates");
+        const fileInput = document.getElementById("fileInput");
+
+        let painting = false;
+
+        const drawDataList = []; // Array zum Speichern der Zeichnungsdaten
+
+        // Funktion zum Zeichnen des Rasters
+        function drawGrid() {
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 0.5;
+
+            for (let x = 0; x <= canvas.width; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = 0; y <= canvas.height; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function startPosition(e) {
+            painting = true;
+            draw(e);
+        }
+
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
+
+        // Smooth Spraypaint-Effekt
+        function draw(e) {
+            if (!painting) return;
+
+            const [x, y] = getMousePosition(e);
+            const spraySize = sizePicker.value; // Radius des Spraypaint-Effekts
+            const sprayDensity = 60; // Dichte der Sprühpunkte
+
+            ctx.fillStyle = hexColor.value;
+
+            for (let i = 0; i < sprayDensity; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * spraySize;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetY = Math.sin(angle) * radius;
+
+                ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
+            }
+
+            // Daten für PubNub
+            const drawData = {
+                x, y, color: hexColor.value, size: spraySize, density: sprayDensity
+            };
+
+            pubnub.publish({
+                channel: 'puravida',
+                message: drawData
+            });
+
+            drawDataList.push(drawData);
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawDataList.length = 0;
+        }
+
+        function updateCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / 20);
+            const y = Math.floor((e.clientY - rect.top) / 20);
+            coordinatesDiv.textContent = `(X: ${x}, Y: ${y})`;
+        }
+
+        function getMousePosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            return [x, y];
+        }
+
+        pubnub.subscribe({
+            channels: ['puravida']
+        });
+
+        pubnub.addListener({
+            message: function(event) {
+                const data = event.message;
+                ctx.fillStyle = data.color;
+
+                for (let i = 0; i < data.density; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * data.size;
+                    const offsetX = Math.cos(angle) * radius;
+                    const offsetY = Math.sin(angle) * radius;
+
+                    ctx.fillRect(data.x + offsetX, data.y + offsetY, 1, 1);
+                }
+
+                drawDataList.push(data);
+            }
+        });
+
+        function saveProject() {
+            const blob = new Blob([JSON.stringify(drawDataList)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "projekt.sxs";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadProject() {
+            fileInput.click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const importedData = JSON.parse(e.target.result);
+                    clearCanvas();
+                    importedData.forEach(drawData => {
+                        ctx.fillStyle = drawData.color;
+
+                        for (let i = 0; i < drawData.density; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = Math.random() * drawData.size;
+                            const offsetX = Math.cos(angle) * radius;
+                            const offsetY = Math.sin(angle) * radius;
+
+                            ctx.fillRect(drawData.x + offsetX, drawData.y + offsetY, 1, 1);
+                        }
+                        drawDataList.push(drawData);
+                    });
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function exportImage() {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+
+            tempCtx.drawImage(canvas, 0, 0);
+            const link = document.createElement('a');
+            link.href = tempCanvas.toDataURL('image/jpeg', 1.0);
+            link.download = 'bild.jpg';
+            link.click();
+        }
+
+        function mixPoints() {
+            const mixAmount = 5; // Wie viel die Punkte verschoben werden
+            const newDrawDataList = drawDataList.map(data => {
+                return {
+                    ...data,
+                    x: data.x + (Math.random() * mixAmount - mixAmount / 2),
+                    y: data.y + (Math.random() * mixAmount - mixAmount / 2)
+                };
+            });
+
+            clearCanvas();
+            newDrawDataList.forEach(drawData => {
+                ctx.fillStyle = drawData.color;
+
+                for (let i = 0; i < drawData.density; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * drawData.size;
+                    const offsetX = Math.cos(angle) * radius;
+                    const offsetY = Math.sin(angle) * radius;
+
+                    ctx.fillRect(drawData.x + offsetX, drawData.y + offsetY, 1, 1);
+                }
+            });
+            drawDataList.splice(0, drawDataList.length, ...newDrawDataList); // Die ursprüngliche Liste aktualisieren
+        }
+
+        drawGrid();
+
+        canvas.addEventListener("mousedown", startPosition);
+        canvas.addEventListener("mouseup", endPosition);
+        canvas.addEventListener("mousemove", draw);
+        canvas.addEventListener("mousemove", updateCoordinates);
     </script>
-  </body>
+</body>
 </html>
