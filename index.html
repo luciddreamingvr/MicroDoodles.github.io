@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Malen mit Kugel-Händen</title>
+  <title>VR Malen mit weißen Linien</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/aframevr/a-painter/dist/a-painter.min.js"></script>
 </head>
@@ -14,7 +14,7 @@
     <a-light type="directional" intensity="1" position="0 2 1"></a-light>
 
     <!-- Malen -->
-    <a-painter></a-painter>
+    <a-entity id="painter" a-painter="color: white"></a-entity>
 
     <!-- Linke Hand -->
     <a-entity id="left-hand" 
