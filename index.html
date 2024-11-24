@@ -3,30 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Malen mit Händen</title>
+  <title>VR Malen mit Kugel-Händen</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/aframevr/a-painter/dist/a-painter.min.js"></script>
 </head>
 <body>
-  <!-- A-Frame Scene -->
+  <!-- A-Frame Szene -->
   <a-scene renderer="antialias: true" background="color: #222">
     <!-- Licht -->
     <a-light type="directional" intensity="1" position="0 2 1"></a-light>
 
-    <!-- Mal-Interface -->
+    <!-- Malen -->
     <a-painter></a-painter>
 
-    <!-- Hände -->
+    <!-- Linke Hand -->
     <a-entity id="left-hand" 
               geometry="primitive: sphere; radius: 0.05" 
               material="color: red; opacity: 0.8" 
-              oculus-touch-controls="hand: left" 
+              tracked-controls="hand: left; controller: false"
               position="0 1.5 -1">
     </a-entity>
+
+    <!-- Rechte Hand -->
     <a-entity id="right-hand" 
               geometry="primitive: sphere; radius: 0.05" 
               material="color: blue; opacity: 0.8" 
-              oculus-touch-controls="hand: right" 
+              tracked-controls="hand: right; controller: false"
               position="0 1.5 -1">
     </a-entity>
 
