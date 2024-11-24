@@ -1,354 +1,114 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drawlex</title>
-    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.29.3.js"></script>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #1b1b1f;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            width: 90%;
-            max-width: 850px;
-            margin: 0 auto;
-        }
-
-        #paintCanvas {
-            border: 2px solid #292a36;
-            cursor: crosshair;
-            background-color: #0c0c10;
-            border-radius: 10px;
-            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.2);
-        }
-
-        #controls {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-            max-width: 800px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        label {
-            font-size: 0.9rem;
-            color: #ccccff;
-        }
-
-        input, button {
-            padding: 10px;
-            border: none;
-            border-radius: 20px;
-            background-color: #292a36;
-            color: #00ffff;
-            outline: none;
-            font-size: 1rem;
-            box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.3);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        button {
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #00cccc;
-            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.5);
-            transform: scale(1.05);
-        }
-
-        #coordinates {
-            font-size: 1rem;
-            text-align: center;
-            color: #00ffff;
-            margin-top: 10px;
-        }
-
-        #aspectControls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-    </style>
+    <title>VR Malen</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.110.0/examples/js/webxr/VRButton.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div id="aspectControls">
-            <label for="widthInput">Width:</label>
-            <input type="number" id="widthInput" min="100" value="800">
-            <label for="heightInput">Height:</label>
-            <input type="number" id="heightInput" min="100" value="600">
-            <button onclick="updateCanvasSize()">Set Aspect Ratio</button>
-        </div>
-
-        <canvas id="paintCanvas" width="800" height="600"></canvas>
-
-        <div id="controls">
-            <div class="control-group">
-                <label for="hexColor">HEX</label>
-                <input type="text" id="hexColor" value="#00ffff" maxlength="7" placeholder="#00ffff">
-            </div>
-            <div class="control-group">
-                <label for="sizePicker">Size</label>
-                <input type="range" id="sizePicker" min="5" max="50" value="15">
-            </div>
-            <button onclick="clearCanvas()">Empty</button>
-            <button onclick="saveProject()">Save</button>
-            <button onclick="loadProject()">Load</button>
-            <button onclick="mixPoints()">Mix</button>
-            <input type="file" id="fileInput" style="display: none;" accept=".sxs" onchange="handleFileImport(event)">
-            <button onclick="exportImage()">Export</button>
-        </div>
-
-        <div id="coordinates">(X: 0, Y: 0)</div>
-    </div>
-
+    <h1>VR Malen</h1>
+    <button id="vr-button"></button>
     <script>
-        const pubnub = new PubNub({
-            publishKey: 'demo',
-            subscribeKey: 'demo',
-            uuid: 'user_' + Math.random().toString(36).substr(2, 9)
+        // Szene und Renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // VR Button
+        document.body.appendChild(VRButton.createButton(renderer));
+
+        // Kamera-Position
+        camera.position.z = 5;
+
+        // Malen: Geometrien speichern
+        const points = [];
+        const drawMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+
+        function drawLine(pointA, pointB) {
+            const geometry = new THREE.BufferGeometry().setFromPoints([pointA, pointB]);
+            const line = new THREE.Line(geometry, drawMaterial);
+            scene.add(line);
+        }
+
+        // Event-Handling für Desktop
+        let isDrawing = false;
+        let lastPoint = null;
+
+        window.addEventListener('mousedown', (event) => {
+            isDrawing = true;
+            lastPoint = new THREE.Vector3(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1,
+                0
+            );
         });
 
-        const canvas = document.getElementById("paintCanvas");
-        const ctx = canvas.getContext("2d");
-        const hexColor = document.getElementById("hexColor");
-        const sizePicker = document.getElementById("sizePicker");
-        const coordinatesDiv = document.getElementById("coordinates");
-        const fileInput = document.getElementById("fileInput");
-
-        let painting = false;
-        let drawDataList = [];
-        
-        const backgroundImage = new Image();
-        backgroundImage.src = 'Alex.png';
-        backgroundImage.onload = () => {
-            drawBackground();
-            drawGrid();
-            redrawCanvas();
-        };
-
-        function drawBackground() {
-            ctx.globalAlpha = 0.2; // Set background transparency
-            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
-            ctx.globalAlpha = 1.0; // Reset opacity for other drawings
-        }
-
-        function updateCanvasSize() {
-            const widthInput = document.getElementById("widthInput");
-            const heightInput = document.getElementById("heightInput");
-
-            const width = parseInt(widthInput.value);
-            const height = parseInt(heightInput.value);
-
-            if (width > 0 && height > 0) {
-                const oldDrawDataList = [...drawDataList]; // Save current drawings
-                canvas.width = width;
-                canvas.height = height;
-
-                drawBackground();
-                drawGrid();
-                redrawCanvas(oldDrawDataList); // Redraw old data
-            }
-        }
-
-        function drawGrid() {
-            ctx.strokeStyle = "#333";
-            ctx.lineWidth = 0.5;
-
-            for (let x = 0; x <= canvas.width; x += 20) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
-            }
-
-            for (let y = 0; y <= canvas.height; y += 20) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-        }
-
-        function redrawCanvas(oldDrawDataList = drawDataList) {
-            oldDrawDataList.forEach(drawData => {
-                ctx.fillStyle = drawData.color;
-
-                for (let i = 0; i < drawData.density; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = Math.random() * drawData.size;
-                    const offsetX = Math.cos(angle) * radius;
-                    const offsetY = Math.sin(angle) * radius;
-
-                    ctx.fillRect(drawData.x + offsetX, drawData.y + offsetY, 1, 1);
+        window.addEventListener('mousemove', (event) => {
+            if (isDrawing) {
+                const currentPoint = new THREE.Vector3(
+                    (event.clientX / window.innerWidth) * 2 - 1,
+                    -(event.clientY / window.innerHeight) * 2 + 1,
+                    0
+                );
+                if (lastPoint) {
+                    drawLine(lastPoint, currentPoint);
                 }
+                lastPoint = currentPoint;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDrawing = false;
+            lastPoint = null;
+        });
+
+        // VR Controller-Handling
+        function onSelectStart(event) {
+            const controller = event.target;
+            controller.userData.isDrawing = true;
+            controller.userData.lastPoint = controller.position.clone();
+        }
+
+        function onSelectEnd(event) {
+            const controller = event.target;
+            controller.userData.isDrawing = false;
+        }
+
+        function handleVRController(controller) {
+            if (controller.userData.isDrawing) {
+                const currentPoint = controller.position.clone();
+                if (controller.userData.lastPoint) {
+                    drawLine(controller.userData.lastPoint, currentPoint);
+                }
+                controller.userData.lastPoint = currentPoint;
+            }
+        }
+
+        const controller1 = renderer.xr.getController(0);
+        controller1.addEventListener('selectstart', onSelectStart);
+        controller1.addEventListener('selectend', onSelectEnd);
+        scene.add(controller1);
+
+        const controller2 = renderer.xr.getController(1);
+        controller2.addEventListener('selectstart', onSelectStart);
+        controller2.addEventListener('selectend', onSelectEnd);
+        scene.add(controller2);
+
+        // Animationsloop
+        function animate() {
+            renderer.setAnimationLoop(() => {
+                handleVRController(controller1);
+                handleVRController(controller2);
+                renderer.render(scene, camera);
             });
         }
 
-        function startPosition(e) {
-            painting = true;
-            draw(e);
-        }
-
-        function endPosition() {
-            painting = false;
-            ctx.beginPath();
-        }
-
-        function draw(e) {
-            if (!painting) return;
-            const [x, y] = getMousePosition(e);
-            const spraySize = sizePicker.value;
-            const sprayDensity = 60;
-            ctx.fillStyle = hexColor.value;
-
-            for (let i = 0; i < sprayDensity; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const radius = Math.random() * spraySize;
-                const offsetX = Math.cos(angle) * radius;
-                const offsetY = Math.sin(angle) * radius;
-                ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
-            }
-
-            const drawData = { x, y, color: hexColor.value, size: spraySize, density: sprayDensity };
-            drawDataList.push(drawData);
-            updateCoordinates(x, y); // Update coordinates display
-        }
-
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBackground();
-            drawGrid();
-            drawDataList.length = 0; // Clear drawing data
-        }
-
-        function getMousePosition(e) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            return [x, y];
-        }
-
-        function updateCoordinates(x, y) {
-            const gridX = Math.floor(x / 20) * 20;
-            const gridY = Math.floor(y / 20) * 20;
-            coordinatesDiv.textContent = `(X: ${gridX}, Y: ${gridY})`;
-        }
-
-        function saveProject() {
-            const dataStr = JSON.stringify(drawDataList);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "drawing.sxs";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function loadProject() {
-            fileInput.click();
-        }
-
-        function handleFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = JSON.parse(e.target.result);
-                drawDataList.length = 0; // Clear existing data
-                clearCanvas(); // Clear the canvas
-                data.forEach(drawData => {
-                    ctx.fillStyle = drawData.color;
-
-                    for (let i = 0; i < drawData.density; i++) {
-                        const angle = Math.random() * Math.PI * 2;
-                        const radius = Math.random() * drawData.size;
-                        const offsetX = Math.cos(angle) * radius;
-                        const offsetY = Math.sin(angle) * radius;
-
-                        ctx.fillRect(drawData.x + offsetX, drawData.y + offsetY, 1, 1);
-                    }
-                    drawDataList.push(drawData); // Re-add draw data
-                });
-            };
-            reader.readAsText(file);
-        }
-
-        function exportImage() {
-            const exportCanvas = document.createElement("canvas");
-            exportCanvas.width = canvas.width;
-            exportCanvas.height = canvas.height;
-            const exportCtx = exportCanvas.getContext("2d");
-
-            // Draw only the points on the export canvas
-            drawDataList.forEach(drawData => {
-                exportCtx.fillStyle = drawData.color;
-
-                for (let i = 0; i < drawData.density; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = Math.random() * drawData.size;
-                    const offsetX = Math.cos(angle) * radius;
-                    const offsetY = Math.sin(angle) * radius;
-
-                    exportCtx.fillRect(drawData.x + offsetX, drawData.y + offsetY, 1, 1);
-                }
-            });
-
-            const imgURL = exportCanvas.toDataURL("image/png");
-            const a = document.createElement("a");
-            a.href = imgURL;
-            a.download = "drawing.png";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        function mixPoints() {
-            // Shuffle the drawDataList
-            for (let i = drawDataList.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [drawDataList[i], drawDataList[j]] = [drawDataList[j], drawDataList[i]];
-            }
-
-            // Clear and redraw canvas
-            clearCanvas();
-            redrawCanvas();
-        }
-
-        canvas.addEventListener("mousedown", startPosition);
-        canvas.addEventListener("mouseup", endPosition);
-        canvas.addEventListener("mousemove", draw);
-        canvas.addEventListener("mousemove", (e) => {
-            const [x, y] = getMousePosition(e);
-            updateCoordinates(x, y);
-        });
+        animate();
     </script>
 </body>
 </html>
