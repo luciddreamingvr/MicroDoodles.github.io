@@ -1,78 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Malen mit Kugel-Händen</title>
-  <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+    <title>three.js example - Salam Hiyali</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            background-color: #000000;
+            margin: 0px;
+            overflow: hidden;
+        }
+        #info {
+            position: absolute;
+            top: 0px; width: 100%;
+            color: #ffffff;
+            padding: 5px;
+            font-family:Monospace;
+            font-size:13px;
+            font-weight: bold;
+            text-align:center;
+        }
+        a {
+            color: #ffffff;
+        }
+    </style>
 </head>
 <body>
-  <a-scene renderer="antialias: true" background="color: #222">
-    <!-- Licht -->
-    <a-light type="directional" intensity="1" position="0 2 1"></a-light>
 
-    <!-- Kugel-Hände -->
-    <a-entity id="left-hand" 
-              geometry="primitive: sphere; radius: 0.05" 
-              material="color: red; opacity: 0.8" 
-              laser-controls="hand: left" 
-              line="color: white; opacity: 1; width: 0.01"
-              position="0 1.5 -1">
-    </a-entity>
+<script src="./assets/js/three.js"></script>
 
-    <a-entity id="right-hand" 
-              geometry="primitive: sphere; radius: 0.05" 
-              material="color: blue; opacity: 0.8" 
-              laser-controls="hand: right" 
-              line="color: white; opacity: 1; width: 0.01"
-              position="0 1.5 -1">
-    </a-entity>
+<script>
+    var camera, scene, renderer;
 
-    <!-- Kamera -->
-    <a-entity camera position="0 1.6 0"></a-entity>
-  </a-scene>
+    var cube, sphere, torus, material;
 
-  <script>
-    AFRAME.registerComponent('draw-lines', {
-      init: function () {
-        const el = this.el;
-        let isDrawing = false;
-        let previousPosition = null;
+    var count = 0, cubeCamera1, cubeCamera2;
+    var lon = 0, lat = 0;
+    var phi = 0, theta = 0;
 
-        // Wenn der Trigger gedrückt wird
-        el.addEventListener('triggerdown', () => {
-          isDrawing = true;
-        });
+    var vrInput;
 
-        // Wenn der Trigger losgelassen wird
-        el.addEventListener('triggerup', () => {
-          isDrawing = false;
-          previousPosition = null;
-        });
 
-        el.addEventListener('controllermousemove', (event) => {
-          if (isDrawing) {
-            const currentPosition = el.object3D.position.clone();
-            if (previousPosition) {
-              const line = document.createElement('a-entity');
-              line.setAttribute('line', {
-                start: previousPosition,
-                end: currentPosition,
-                color: 'white',
-                opacity: 1,
-                width: 0.01,
-              });
-              el.sceneEl.appendChild(line);
+    //获取VR设备（作为信息输入源。如有多个则只取第一个）
+    function gotVRDevices( devices ) {
+        for ( var i = 0; i < devices.length; i ++ ) {
+            if ( ( 'VRDisplay' in window && devices[ i ] instanceof VRDisplay ) || ( 'PositionSensorVRDevice' in window && devices[ i ] instanceof PositionSensorVRDevice ) ) {
+                vrInput = devices[ i ];
+                break;  // We keep the first we encounter
             }
-            previousPosition = currentPosition;
-          }
-        });
-      },
-    });
+        }
 
-    // Wende die draw-lines-Komponente auf die Hände an
-    document.querySelector('#left-hand').setAttribute('draw-lines', '');
-    document.querySelector('#right-hand').setAttribute('draw-lines', '');
-  </script>
+        if ( !vrInput ) {
+            if ( onError ) onError( 'VR input not available.' );
+        }
+
+        /*
+         // the Rift SDK returns the position in meters
+         // this scale factor allows the user to define how meters
+         // are converted to scene units.
+         //Rift SDK返回的位置信息是以米作为单位的。这里可以定义以几倍的缩放比例转换为three.js中的长度。
+         this.scale = 1;
+
+         // If true will use "standing space" coordinate system where y=0 is the
+         // floor and x=0, z=0 is the center of the room.
+         //表示使用者是否站立姿态。当为false时camra会在y=0的位置，而为true时会结合下面的模拟身高来决定camera的y值。
+         //在无法获取用户姿势信息的设备上，需要在调用时直接指定是站姿还是坐姿。
+         this.standing = false;
+
+         // Distance from the users eyes to the floor in meters. Used when
+         // standing=true but the VRDisplay doesn't provide stageParameters.
+         //当为站立姿态时，用户的眼睛（camera）的高度（跟如有硬件时返回的单位一致，为米）。这里会受scale的影响。如scale为2时，实际camera的高度就是3.2。
+         this.userHeight = 1.6;
+         // */
+    }
+    //调用WebVR API获取VR设备
+    if ( navigator.getVRDisplays ) {
+        navigator.getVRDisplays().then( gotVRDevices );
+    } else if ( navigator.getVRDevices ) {
+        // Deprecated API.
+        navigator.getVRDevices().then( gotVRDevices );
+    }
+    // get device orientation and position to camera
+    var gdop2Camera = function () {
+        if ( vrInput ) {
+            if ( vrInput.getPose ) {
+                //方法返回传感器在某一时刻的信息(object)。例如包括时间戳、位置(x,y,z)、线速度、线加速度、角速度、角加速度、方向信息。
+                var pose = vrInput.getPose();
+                //orientation 方向
+                if ( pose.orientation !== null ) {
+                    //quaternion  四元数
+                    //把设备的方向复制给camera
+                    object.quaternion.fromArray( pose.orientation );
+                }
+                //位置信息
+                if ( pose.position !== null ) {
+                    //同样把设备的位置复制给camera
+                    object.position.fromArray( pose.position );
+                } else {
+                    object.position.set( 0, 0, 0 );
+                }
+
+            } else {
+                // Deprecated API.
+                var state = vrInput.getState();
+                if ( state.orientation !== null ) {
+                    object.quaternion.copy( state.orientation );
+                }
+                if ( state.position !== null ) {
+                    object.position.copy( state.position );
+                } else {
+                    object.position.set( 0, 0, 0 );
+                }
+            }
+
+            //TODO 此块会一直执行
+            if ( this.standing ) {
+                //如果硬件返回场景信息，则应用硬件返回的数据来进行站姿转换
+                if ( vrInput.stageParameters ) {
+                    object.updateMatrix();
+                    //sittingToStandingTransform返回一个Matrix4,表示从坐姿到站姿的变换。
+                    standingMatrix.fromArray(vrInput.stageParameters.sittingToStandingTransform);
+                    //应用变换到camera。
+                    object.applyMatrix( standingMatrix );
+                } else {
+                    //如果vrInput不提供y高度信息的话使用userHeight作为高度
+                    object.position.setY( object.position.y + this.userHeight );
+                }
+
+            }
+            //使用上面定义的this.scale来缩放camera的位置。
+            object.position.multiplyScalar( scope.scale );
+        }
+    }
+
+
+    var getLoadingManager = function () {
+        var manager = new THREE.LoadingManager();
+
+        manager.onStart = function( item, loaded, total ) {
+            console.log( 'Loading started' );
+        };
+        manager.onLoad = function() {
+            console.log( 'Loading complete' );
+        };
+        manager.onProgress = function( item, loaded, total ) {
+            console.log( item, loaded, total );
+        };
+        manager.onError = function( url ) {
+            console.log( 'Error loading' );
+        };
+        return manager;
+    }
+
+    var textureLoader = new THREE.TextureLoader(getLoadingManager());
+    textureLoader.load( 'assets/image/snow-area.jpg', function ( texture ) {
+        texture.mapping = THREE.UVMapping;
+        init( texture );
+        animate();
+    } );
+
+    function init( texture ) {
+        camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+        scene = new THREE.Scene();
+        var mesh = new THREE.Mesh( new THREE.SphereBufferGeometry( 500, 32, 16 ), new THREE.MeshBasicMaterial( { map: texture } ) );
+        mesh.scale.x = -1;
+        scene.add( mesh );
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        cubeCamera1 = new THREE.CubeCamera( 1, 1000, 256 );
+        cubeCamera1.renderTarget.texture.minFilter = THREE.LinearMipMapLinearFilter;
+        scene.add( cubeCamera1 );
+        cubeCamera2 = new THREE.CubeCamera( 1, 1000, 256 );
+        cubeCamera2.renderTarget.texture.minFilter = THREE.LinearMipMapLinearFilter;
+        scene.add( cubeCamera2 );
+        document.body.appendChild( renderer.domElement );
+        //
+        material = new THREE.MeshBasicMaterial( {
+            envMap: cubeCamera2.renderTarget.texture
+        } );
+        sphere = new THREE.Mesh( new THREE.IcosahedronBufferGeometry( 20, 3 ), material );
+        scene.add( sphere );
+        cube = new THREE.Mesh( new THREE.BoxBufferGeometry( 20, 20, 20 ), material );
+        scene.add( cube );
+        torus = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( 10, 5, 100, 25 ), material );
+        scene.add( torus );
+        //
+        document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        document.addEventListener( 'wheel', onDocumentMouseWheel, false );
+        window.addEventListener( 'resize', onWindowResized, false );
+    }
+    function onWindowResized( event ) {
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    }
+    function onDocumentMouseDown( event ) {
+        event.preventDefault();
+        onPointerDownPointerX = event.clientX;
+        onPointerDownPointerY = event.clientY;
+        onPointerDownLon = lon;
+        onPointerDownLat = lat;
+        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+    }
+    function onDocumentMouseMove( event ) {
+        lon = ( event.clientX - onPointerDownPointerX ) * 0.1 + onPointerDownLon;
+        lat = ( event.clientY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+    }
+    function onDocumentMouseUp( event ) {
+        document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+        document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+    }
+    function onDocumentMouseWheel( event ) {
+        camera.fov += ( event.deltaY * 0.05 );
+        camera.updateProjectionMatrix();
+    }
+
+    function animate() {
+        render();
+        gdop2Camera();
+
+        requestAnimationFrame( animate );
+    }
+    function render() {
+        var time = Date.now();
+        lon += .15;
+        lat = Math.max( - 85, Math.min( 85, lat ) );
+        phi = THREE.Math.degToRad( 90 - lat );
+        theta = THREE.Math.degToRad( lon );
+        cube.position.x = Math.cos( time * 0.001 ) * 30;
+        cube.position.y = Math.sin( time * 0.001 ) * 30;
+        cube.position.z = Math.sin( time * 0.001 ) * 30;
+        cube.rotation.x += 0.02;
+        cube.rotation.y += 0.03;
+        torus.position.x = Math.cos( time * 0.001 + 10 ) * 30;
+        torus.position.y = Math.sin( time * 0.001 + 10 ) * 30;
+        torus.position.z = Math.sin( time * 0.001 + 10 ) * 30;
+        torus.rotation.x += 0.02;
+        torus.rotation.y += 0.03;
+        camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+        camera.position.y = 100 * Math.cos( phi );
+        camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
+        camera.lookAt( scene.position );
+        sphere.visible = false;
+        // pingpong
+        if ( count % 2 === 0 ) {
+            material.envMap = cubeCamera1.renderTarget.texture;
+            cubeCamera2.updateCubeMap( renderer, scene );
+        } else {
+            material.envMap = cubeCamera2.renderTarget.texture;
+            cubeCamera1.updateCubeMap( renderer, scene );
+        }
+        count ++;
+        sphere.visible = true;
+        renderer.render( scene, camera );
+    }
+</script>
+
 </body>
 </html>
