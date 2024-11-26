@@ -1,152 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>three.js vr - handinput - painting</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <link type="text/css" rel="stylesheet" href="css/main.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VR Malen</title>
+  <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 </head>
 <body>
+  <a-scene renderer="antialias: true" background="color: #333">
+    <!-- Licht -->
+    <a-light type="ambient" intensity="0.5"></a-light>
+    <a-light type="directional" intensity="1" position="1 3 2"></a-light>
 
-    <div id="info">
-        <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> vr - handinput - painting<br>
-        (Oculus Browser 15.1+)
-    </div>
+    <!-- Kugel-Hände -->
+    <a-entity id="left-hand" 
+              geometry="primitive: sphere; radius: 0.05" 
+              material="color: red; opacity: 0.9" 
+              tracked-controls="hand: left; controller: false">
+    </a-entity>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "../build/three.module.js",
-                "three/addons/": "./jsm/"
+    <a-entity id="right-hand" 
+              geometry="primitive: sphere; radius: 0.05" 
+              material="color: blue; opacity: 0.9" 
+              tracked-controls="hand: right; controller: false">
+    </a-entity>
+
+    <!-- Kamera -->
+    <a-entity camera position="0 1.6 0"></a-entity>
+  </a-scene>
+
+  <script>
+    AFRAME.registerComponent('draw-lines', {
+      schema: { color: { default: 'white' } },
+      init: function () {
+        const el = this.el;
+        const scene = el.sceneEl;
+        let isDrawing = false;
+        let lastPosition = null;
+
+        // Event: Starten des Zeichnens
+        el.addEventListener('triggerdown', () => {
+          isDrawing = true;
+          lastPosition = el.object3D.position.clone();
+        });
+
+        // Event: Beenden des Zeichnens
+        el.addEventListener('triggerup', () => {
+          isDrawing = false;
+          lastPosition = null;
+        });
+
+        // Event: Bewegung während des Zeichnens
+        el.addEventListener('controllerconnected', () => {
+          el.addEventListener('controllerMoved', () => {
+            if (isDrawing && lastPosition) {
+              const currentPosition = el.object3D.position.clone();
+
+              // Zeichne eine Linie von der letzten Position zur aktuellen Position
+              const line = document.createElement('a-entity');
+              line.setAttribute('line', {
+                start: lastPosition,
+                end: currentPosition,
+                color: this.data.color,
+                width: 0.01,
+              });
+              scene.appendChild(line);
+
+              // Update der letzten Position
+              lastPosition = currentPosition;
             }
-        }
-    </script>
+          });
+        });
+      },
+    });
 
-    <script type="module">
-
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { VRButton } from 'three/addons/webxr/VRButton.js';
-        import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
-        import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
-
-        let container;
-        let camera, scene, renderer;
-        let hand1, hand2;
-        let controllerGrip1, controllerGrip2;
-
-        const lines = [];
-        let drawing = false;
-
-        init();
-
-        function init() {
-
-            container = document.createElement('div');
-            document.body.appendChild(container);
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x444444);
-
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10);
-            camera.position.set(0, 1.6, 3);
-
-            const controls = new OrbitControls(camera, container);
-            controls.target.set(0, 1.6, 0);
-            controls.update();
-
-            const floorGeometry = new THREE.PlaneGeometry(4, 4);
-            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            scene.add(new THREE.HemisphereLight(0xbcbcbc, 0xa5a5a5, 3));
-
-            const light = new THREE.DirectionalLight(0xffffff, 3);
-            light.position.set(0, 6, 0);
-            light.castShadow = true;
-            light.shadow.camera.top = 2;
-            light.shadow.camera.bottom = -2;
-            light.shadow.camera.right = 2;
-            light.shadow.camera.left = -2;
-            light.shadow.mapSize.set(4096, 4096);
-            scene.add(light);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setAnimationLoop(animate);
-            renderer.shadowMap.enabled = true;
-            renderer.xr.enabled = true;
-
-            container.appendChild(renderer.domElement);
-
-            document.body.appendChild(VRButton.createButton(renderer));
-
-            const controllerModelFactory = new XRControllerModelFactory();
-            const handModelFactory = new XRHandModelFactory();
-
-            // Hand 1
-            hand1 = renderer.xr.getHand(0);
-            hand1.addEventListener('pinchstart', onPinchStartLeft);
-            hand1.addEventListener('pinchend', onPinchEndLeft);
-            hand1.add(handModelFactory.createHandModel(hand1));
-            scene.add(hand1);
-
-            // Hand 2 (optional, can add more interactions here)
-            hand2 = renderer.xr.getHand(1);
-            hand2.add(handModelFactory.createHandModel(hand2));
-            scene.add(hand2);
-
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function onPinchStartLeft(event) {
-            const controller = event.target;
-            const indexTip = controller.joints['index-finger-tip'];
-
-            drawing = true;
-
-            const points = [indexTip.position.clone()];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({
-                color: Math.random() * 0xffffff,
-                linewidth: 2
-            });
-            const line = new THREE.Line(geometry, material);
-
-            line.userData = { points, geometry }; // Store points for updates
-            lines.push(line);
-            scene.add(line);
-        }
-
-        function onPinchEndLeft() {
-            drawing = false;
-        }
-
-        function animate() {
-            if (drawing) {
-                const indexTip = hand1.joints['index-finger-tip'];
-                const lastLine = lines[lines.length - 1];
-                if (lastLine) {
-                    const points = lastLine.userData.points;
-                    points.push(indexTip.position.clone());
-                    lastLine.userData.geometry.setFromPoints(points); // Update line
-                }
-            }
-
-            renderer.render(scene, camera);
-        }
-
-    </script>
-
+    // Füge die Komponente zu beiden Händen hinzu
+    document.querySelector('#left-hand').setAttribute('draw-lines', 'color: red');
+    document.querySelector('#right-hand').setAttribute('draw-lines', 'color: blue');
+  </script>
 </body>
 </html>
