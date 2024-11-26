@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Hände auf Controllern</title>
+  <title>VR Hände mit Controllern</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 </head>
 <body>
@@ -12,50 +12,24 @@
     <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="1" position="1 3 2"></a-light>
 
-    <!-- Linke Hand -->
+    <!-- Linker Controller -->
     <a-entity id="left-hand" 
-              tracked-controls="hand: left; controller: oculus-touch" 
-              oculus-touch-controls="hand: left" 
-              hand-model="color: red;">
+              tracked-controls="hand: left" 
+              oculus-touch-controls="hand: left"
+              gltf-model="https://cdn.aframe.io/controllers/oculus/oculus-touch-left.gltf"
+              scale="1 1 1">
     </a-entity>
 
-    <!-- Rechte Hand -->
+    <!-- Rechter Controller -->
     <a-entity id="right-hand" 
-              tracked-controls="hand: right; controller: oculus-touch" 
-              oculus-touch-controls="hand: right" 
-              hand-model="color: blue;">
+              tracked-controls="hand: right" 
+              oculus-touch-controls="hand: right"
+              gltf-model="https://cdn.aframe.io/controllers/oculus/oculus-touch-right.gltf"
+              scale="1 1 1">
     </a-entity>
 
     <!-- Kamera -->
     <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
-
-  <script>
-    AFRAME.registerComponent('hand-model', {
-      schema: {
-        color: { type: 'string', default: 'white' },
-      },
-      init: function () {
-        const el = this.el;
-        const hand = el.getAttribute('tracked-controls').hand;
-        const color = this.data.color;
-
-        // Lade das passende Modell für die Hand
-        el.setAttribute('gltf-model', `https://cdn.aframe.io/models/hand/hand-${hand}.glb`);
-
-        // Setze die Farbe des Handmodells
-        el.addEventListener('model-loaded', () => {
-          const handMesh = el.getObject3D('mesh');
-          if (handMesh) {
-            handMesh.traverse((node) => {
-              if (node.isMesh) {
-                node.material.color.set(color);
-              }
-            });
-          }
-        });
-      },
-    });
-  </script>
 </body>
 </html>
