@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Hände mit .obj-Modellen</title>
+  <title>VR Hände mit Greifbewegung</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
 </head>
@@ -19,7 +19,9 @@
               obj-model="obj: url(left.obj)"
               material="color: #bf9d7d"
               scale="0.5 0.5 0.5"
-              rotation="90 0 90">
+              rotation="90 0 90"
+              class="hand"
+              oculus-touch-controls="hand: left">
     </a-entity>
 
     <!-- Rechte Hand -->
@@ -28,11 +30,45 @@
               obj-model="obj: url(right.obj)"
               material="color: #bf9d7d"
               scale="0.5 0.5 0.5"
-              rotation="90 0 90">
+              rotation="90 0 90"
+              class="hand"
+              oculus-touch-controls="hand: right">
     </a-entity>
 
     <!-- Kamera -->
     <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
+
+  <script>
+    // Wechsel der Handmodelle bei Greifbewegung
+    AFRAME.registerComponent('grip-change', {
+      init: function () {
+        // Referenz zum Controller
+        const el = this.el;
+
+        // Event, wenn der Grip gedrückt wird
+        el.addEventListener('gripdown', function () {
+          if (el.id === 'left-hand') {
+            el.setAttribute('obj-model', 'obj: url(leftg.obj)'); // Faust-Modell für die linke Hand
+          } else if (el.id === 'right-hand') {
+            el.setAttribute('obj-model', 'obj: url(rightg.obj)'); // Faust-Modell für die rechte Hand
+          }
+        });
+
+        // Event, wenn der Grip losgelassen wird
+        el.addEventListener('gripup', function () {
+          if (el.id === 'left-hand') {
+            el.setAttribute('obj-model', 'obj: url(left.obj)'); // Offene Hand für die linke Hand
+          } else if (el.id === 'right-hand') {
+            el.setAttribute('obj-model', 'obj: url(right.obj)'); // Offene Hand für die rechte Hand
+          }
+        });
+      }
+    });
+
+    // Füge die grip-change-Komponente zu den Hand-Entities hinzu
+    document.querySelector('#left-hand').setAttribute('grip-change', '');
+    document.querySelector('#right-hand').setAttribute('grip-change', '');
+  </script>
 </body>
 </html>
