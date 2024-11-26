@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Hände mit Greif-Animation</title>
+  <title>VR Hände mit Greifbewegung</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
 </head>
@@ -15,24 +15,26 @@
 
     <!-- Linke Hand -->
     <a-entity id="left-hand" 
-              tracked-controls="hand: left"
+              tracked-controls="hand: left; model: false"
               obj-model="obj: url(left.obj)"
               material="color: #bf9d7d"
               scale="0.5 0.5 0.5"
               rotation="90 0 90"
-              oculus-touch-controls="hand: left"
-              class="interactive-hand">
+              position="0 0 0"
+              class="hand"
+              oculus-touch-controls="hand: left; model: false">
     </a-entity>
 
     <!-- Rechte Hand -->
     <a-entity id="right-hand" 
-              tracked-controls="hand: right"
+              tracked-controls="hand: right; model: false"
               obj-model="obj: url(right.obj)"
               material="color: #bf9d7d"
               scale="0.5 0.5 0.5"
               rotation="90 0 90"
-              oculus-touch-controls="hand: right"
-              class="interactive-hand">
+              position="0 0 0"
+              class="hand"
+              oculus-touch-controls="hand: right; model: false">
     </a-entity>
 
     <!-- Kamera -->
@@ -40,31 +42,42 @@
   </a-scene>
 
   <script>
-    // Funktion, die das Modell basierend auf dem Griffstatus ändert
-    AFRAME.registerComponent('change-hand-model', {
+    // Wechsel der Handmodelle bei Greifbewegung
+    AFRAME.registerComponent('grip-change', {
       init: function () {
+        // Referenz zur Hand
         const el = this.el;
+        this.isGripped = false; // Zustand des Griffs
 
-        // Event-Listener für Buttonänderungen hinzufügen
-        el.addEventListener('buttonchanged', (evt) => {
-          if (evt.detail.name === 'grip') {
-            const isGripping = evt.detail.value > 0.1; // Griff-Status prüfen
+        // Event, wenn der Grip gedrückt wird
+        el.addEventListener('gripdown', () => {
+          if (!this.isGripped) {
+            this.isGripped = true; // Zustand aktualisieren
+            if (el.id === 'left-hand') {
+              el.setAttribute('obj-model', 'obj: url(leftg.obj)'); // Faust-Modell links
+            } else if (el.id === 'right-hand') {
+              el.setAttribute('obj-model', 'obj: url(rightg.obj)'); // Faust-Modell rechts
+            }
+          }
+        });
 
-            // Modell wechseln basierend auf dem Griffstatus
-            if (isGripping) {
-              el.setAttribute('obj-model', 'obj: url(leftg.obj)');
-            } else {
-              el.setAttribute('obj-model', 'obj: url(left.obj)');
+        // Event, wenn der Grip losgelassen wird
+        el.addEventListener('gripup', () => {
+          if (this.isGripped) {
+            this.isGripped = false; // Zustand aktualisieren
+            if (el.id === 'left-hand') {
+              el.setAttribute('obj-model', 'obj: url(left.obj)'); // Offene Hand links
+            } else if (el.id === 'right-hand') {
+              el.setAttribute('obj-model', 'obj: url(right.obj)'); // Offene Hand rechts
             }
           }
         });
       }
     });
 
-    // Wendet die Komponente auf interaktive Hände an
-    document.querySelectorAll('.interactive-hand').forEach((hand) => {
-      hand.setAttribute('change-hand-model', '');
-    });
+    // Füge die grip-change-Komponente zu den Hand-Entities hinzu
+    document.querySelector('#left-hand').setAttribute('grip-change', '');
+    document.querySelector('#right-hand').setAttribute('grip-change', '');
   </script>
 </body>
 </html>
