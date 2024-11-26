@@ -41,17 +41,19 @@
               oculus-touch-controls="hand: right; model: false">
     </a-entity>
 
-    <!-- Kopf (Headset) mit head.obj, gleiche Farbe wie die Hände -->
-    <a-entity id="head"
-              obj-model="obj: url(head.obj)"
-              material="color: #bf9d7d"
-              scale="1.5 1.5 1.5"
-              position="0 1.6 0"  <!-- Position auf Höhe des Kopfes -->
-              rotation="0 0 0">
+    <!-- Kamera (Kopf bewegt sich mit HMD) -->
+    <a-entity id="camera-container" position="0 1.6 0">
+      <a-camera id="camera" position="0 0 0"></a-camera>
+      <!-- Kopfmodell, das an die Kamera gebunden ist -->
+      <a-entity id="head" 
+                obj-model="obj: url(head.obj)"
+                material="color: #bf9d7d"
+                scale="0.5 0.5 0.5"
+                position="0 0 0"
+                rotation="0 0 0">
+      </a-entity>
     </a-entity>
 
-    <!-- Kamera -->
-    <a-entity id="camera" camera position="0 1.6 0"></a-entity>
   </a-scene>
 
   <script>
@@ -69,14 +71,14 @@
     function sendPlayerData() {
       const leftHand = document.querySelector('#left-hand');
       const rightHand = document.querySelector('#right-hand');
-      const head = document.querySelector('#head');
       const camera = document.querySelector('#camera');
-
+      const head = document.querySelector('#head');
+      
       // Holen der Position und Rotation
       const leftHandPos = leftHand.getAttribute('position');
       const rightHandPos = rightHand.getAttribute('position');
-      const headPos = head.getAttribute('position');
       const cameraPos = camera.getAttribute('position');
+      const headPos = head.getAttribute('position');
       
       const leftHandRot = leftHand.getAttribute('rotation');
       const rightHandRot = rightHand.getAttribute('rotation');
@@ -125,22 +127,8 @@
       channels: [channel]
     });
 
-    // Synchronisiere den Kopf mit der Kamera
-    function syncHeadWithCamera() {
-      const head = document.querySelector('#head');
-      const camera = document.querySelector('#camera');
-      const cameraPos = camera.getAttribute('position');
-      const cameraRot = camera.getAttribute('rotation');
-      
-      head.setAttribute('position', cameraPos);  // Kopf folgt der Kameraposition
-      head.setAttribute('rotation', cameraRot);  // Kopf folgt der Kamerarotation
-    }
-
     // Sende die Daten in regelmäßigen Abständen
     setInterval(sendPlayerData, 1000);  // Sende alle 1 Sekunde
-
-    // Synchronisiere Kopf und Kamera
-    setInterval(syncHeadWithCamera, 100);  // Synchronisiere alle 100ms (häufiger, damit der Kopf korrekt bewegt wird)
 
   </script>
 </body>
