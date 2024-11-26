@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Hände mit Greifbewegung</title>
+  <title>VR Hände mit Bewegung</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
 </head>
 <body>
-  <a-scene renderer="antialias: true" background="color: #333">
+  <a-scene renderer="antialias: true" background="color: #333" vr-mode-ui="enabled: true">
     <!-- Licht -->
     <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="1" position="1 3 2"></a-light>
+
+    <!-- Gitterboden -->
+    <a-grid material="color: #555; metalness: 0.6; roughness: 0.8" height="10" width="10"></a-grid>
 
     <!-- Linke Hand -->
     <a-entity id="left-hand" 
@@ -21,7 +24,6 @@
               scale="0.5 0.5 0.5"
               rotation="90 0 90"
               position="0 0 0"
-              class="hand"
               oculus-touch-controls="hand: left; model: false">
     </a-entity>
 
@@ -33,51 +35,45 @@
               scale="0.5 0.5 0.5"
               rotation="90 0 90"
               position="0 0 0"
-              class="hand"
               oculus-touch-controls="hand: right; model: false">
     </a-entity>
 
     <!-- Kamera -->
-    <a-entity camera position="0 1.6 0"></a-entity>
+    <a-entity id="player" position="0 1.6 0" movement-controls>
+      <a-entity camera look-controls wasd-controls-enabled="false"></a-entity>
+    </a-entity>
   </a-scene>
 
   <script>
-    // Wechsel der Handmodelle bei Greifbewegung
-    AFRAME.registerComponent('grip-change', {
+    AFRAME.registerComponent('movement-controls', {
       init: function () {
-        // Referenz zur Hand
         const el = this.el;
-        this.isGripped = false; // Zustand des Griffs
+        const player = document.querySelector('#player');
+        
+        this.joystickAxis = { x: 0, y: 0 }; // Bewegung wird hier gespeichert
 
-        // Event, wenn der Grip gedrückt wird
-        el.addEventListener('gripdown', () => {
-          if (!this.isGripped) {
-            this.isGripped = true; // Zustand aktualisieren
-            if (el.id === 'left-hand') {
-              el.setAttribute('obj-model', 'obj: url(leftg.obj)'); // Faust-Modell links
-            } else if (el.id === 'right-hand') {
-              el.setAttribute('obj-model', 'obj: url(rightg.obj)'); // Faust-Modell rechts
-            }
+        // Bewegung basierend auf Joystick-Eingabe
+        el.addEventListener('axismove', (evt) => {
+          // Controller-Achse überprüfen (linker Joystick)
+          if (evt.detail.axis[0] !== undefined && evt.detail.axis[1] !== undefined) {
+            this.joystickAxis.x = evt.detail.axis[0]; // Links/Rechts
+            this.joystickAxis.y = evt.detail.axis[1]; // Vorwärts/Rückwärts
           }
         });
 
-        // Event, wenn der Grip losgelassen wird
-        el.addEventListener('gripup', () => {
-          if (this.isGripped) {
-            this.isGripped = false; // Zustand aktualisieren
-            if (el.id === 'left-hand') {
-              el.setAttribute('obj-model', 'obj: url(left.obj)'); // Offene Hand links
-            } else if (el.id === 'right-hand') {
-              el.setAttribute('obj-model', 'obj: url(right.obj)'); // Offene Hand rechts
-            }
+        this.tick = AFRAME.utils.throttleTick(() => {
+          if (this.joystickAxis.x !== 0 || this.joystickAxis.y !== 0) {
+            const direction = new THREE.Vector3();
+            const rotation = new THREE.Euler(0, player.object3D.rotation.y, 0);
+            const speed = 0.1; // Geschwindigkeit des Spielers
+
+            // Bewegungsrichtung
+            direction.set(this.joystickAxis.x, 0, -this.joystickAxis.y).applyEuler(rotation);
+            player.object3D.position.add(direction.multiplyScalar(speed));
           }
-        });
+        }, 50);
       }
     });
-
-    // Füge die grip-change-Komponente zu den Hand-Entities hinzu
-    document.querySelector('#left-hand').setAttribute('grip-change', '');
-    document.querySelector('#right-hand').setAttribute('grip-change', '');
   </script>
 </body>
 </html>
