@@ -45,13 +45,13 @@
     <a-entity id="head"
               obj-model="obj: url(head.obj)"
               material="color: #bf9d7d"
-              scale="0.5 0.5 0.5"
+              scale="1.5 1.5 1.5"
               position="0 1.6 0"  <!-- Position auf Höhe des Kopfes -->
               rotation="0 0 0">
     </a-entity>
 
     <!-- Kamera -->
-    <a-entity camera position="0 1.6 0"></a-entity>
+    <a-entity id="camera" camera position="0 1.6 0"></a-entity>
   </a-scene>
 
   <script>
@@ -70,7 +70,7 @@
       const leftHand = document.querySelector('#left-hand');
       const rightHand = document.querySelector('#right-hand');
       const head = document.querySelector('#head');
-      const camera = document.querySelector('[camera]');
+      const camera = document.querySelector('#camera');
 
       // Holen der Position und Rotation
       const leftHandPos = leftHand.getAttribute('position');
@@ -125,8 +125,22 @@
       channels: [channel]
     });
 
+    // Synchronisiere den Kopf mit der Kamera
+    function syncHeadWithCamera() {
+      const head = document.querySelector('#head');
+      const camera = document.querySelector('#camera');
+      const cameraPos = camera.getAttribute('position');
+      const cameraRot = camera.getAttribute('rotation');
+      
+      head.setAttribute('position', cameraPos);  // Kopf folgt der Kameraposition
+      head.setAttribute('rotation', cameraRot);  // Kopf folgt der Kamerarotation
+    }
+
     // Sende die Daten in regelmäßigen Abständen
     setInterval(sendPlayerData, 1000);  // Sende alle 1 Sekunde
+
+    // Synchronisiere Kopf und Kamera
+    setInterval(syncHeadWithCamera, 100);  // Synchronisiere alle 100ms (häufiger, damit der Kopf korrekt bewegt wird)
 
   </script>
 </body>
