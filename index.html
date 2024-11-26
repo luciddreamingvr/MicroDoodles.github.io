@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Hände mit Controllern</title>
+  <title>VR Hände mit .obj-Modellen</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
 </head>
 <body>
   <a-scene renderer="antialias: true" background="color: #333">
@@ -12,20 +13,18 @@
     <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="1" position="1 3 2"></a-light>
 
-    <!-- Linker Controller -->
+    <!-- Linke Hand -->
     <a-entity id="left-hand" 
-              tracked-controls="hand: left" 
-              oculus-touch-controls="hand: left"
-              gltf-model="https://cdn.aframe.io/controllers/oculus/oculus-touch-left.gltf"
-              scale="1 1 1">
+              tracked-controls="hand: left"
+              obj-model="obj: url(left.obj); mtl: url(left.mtl)"
+              scale="0.5 0.5 0.5">
     </a-entity>
 
-    <!-- Rechter Controller -->
+    <!-- Rechte Hand -->
     <a-entity id="right-hand" 
-              tracked-controls="hand: right" 
-              oculus-touch-controls="hand: right"
-              gltf-model="https://cdn.aframe.io/controllers/oculus/oculus-touch-right.gltf"
-              scale="1 1 1">
+              tracked-controls="hand: right"
+              obj-model="obj: url(right.obj); mtl: url(right.mtl)"
+              scale="0.5 0.5 0.5">
     </a-entity>
 
     <!-- Kamera -->
