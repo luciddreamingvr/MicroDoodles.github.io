@@ -67,7 +67,7 @@
 
     const channel = 'demo';
 
-    // Funktion zum Senden von Positions- und Rotationsdaten
+    // Funktion zum Senden von Positions-, Rotations- und Greifdaten
     function sendPlayerData() {
       const leftHand = document.querySelector('#left-hand');
       const rightHand = document.querySelector('#right-hand');
@@ -83,11 +83,15 @@
       const rightHandRotation = rightHand.getAttribute('rotation');
       const headRotation = head.getAttribute('rotation');
 
+      // Hole den Grip-Zustand der Hände
+      const leftHandGrip = leftHand.getAttribute('obj-model').obj.includes('leftg.obj'); // Faust-Modell
+      const rightHandGrip = rightHand.getAttribute('obj-model').obj.includes('rightg.obj'); // Faust-Modell
+
       // Nachricht senden
       const message = {
         playerId: playerId,
-        leftHand: { position: leftHandPosition, rotation: leftHandRotation },
-        rightHand: { position: rightHandPosition, rotation: rightHandRotation },
+        leftHand: { position: leftHandPosition, rotation: leftHandRotation, grip: leftHandGrip },
+        rightHand: { position: rightHandPosition, rotation: rightHandRotation, grip: rightHandGrip },
         head: { position: headPosition, rotation: headRotation }
       };
 
@@ -120,6 +124,13 @@
           // Update der Position und Rotation der anderen Spieler
           playerEntity.setAttribute('position', data.head.position);
           playerEntity.setAttribute('rotation', data.head.rotation);
+
+          // Aktualisiere Hände basierend auf Grip-Zustand
+          const leftHand = playerEntity.querySelector('#left-hand') || createHand(playerId, 'left');
+          const rightHand = playerEntity.querySelector('#right-hand') || createHand(playerId, 'right');
+
+          updateHandGrip(leftHand, data.leftHand);
+          updateHandGrip(rightHand, data.rightHand);
         }
       }
     });
@@ -131,6 +142,27 @@
 
     // Periodisch die Daten senden (z. B. alle 1000ms)
     setInterval(sendPlayerData, 1000);
+
+    // Funktion zum Erstellen der Handmodelle für andere Spieler
+    function createHand(playerId, handType) {
+      const handEntity = document.createElement('a-entity');
+      handEntity.setAttribute('id', `${handType}-hand-${playerId}`);
+      handEntity.setAttribute('obj-model', `obj: url(${handType}.obj)`);
+      handEntity.setAttribute('material', 'color: #bf9d7d');
+      handEntity.setAttribute('scale', '0.5 0.5 0.5');
+      handEntity.setAttribute('position', '0 0 0');
+      document.querySelector(`#player-${playerId}`).appendChild(handEntity);
+      return handEntity;
+    }
+
+    // Funktion zum Aktualisieren des Grip-Zustands
+    function updateHandGrip(handEntity, handData) {
+      if (handData.grip) {
+        handEntity.setAttribute('obj-model', `obj: url(${handEntity.id.includes('left') ? 'leftg.obj' : 'rightg.obj'})`);
+      } else {
+        handEntity.setAttribute('obj-model', `obj: url(${handEntity.id.includes('left') ? 'left.obj' : 'right.obj'})`);
+      }
+    }
   </script>
 </body>
 </html>
