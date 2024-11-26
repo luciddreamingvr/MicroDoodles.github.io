@@ -40,6 +40,15 @@
               oculus-touch-controls="hand: right; model: false">
     </a-entity>
 
+    <!-- Kopf (Headset) mit head.obj, gleiche Farbe wie die Hände -->
+    <a-entity id="head"
+              obj-model="obj: url(head.obj)"
+              material="color: #bf9d7d"
+              scale="0.5 0.5 0.5"
+              position="0 1.6 0"  <!-- Position auf Höhe des Kopfes -->
+              rotation="0 0 0">
+    </a-entity>
+
     <!-- Kamera -->
     <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
