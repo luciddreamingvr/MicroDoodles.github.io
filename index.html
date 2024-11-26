@@ -6,7 +6,6 @@
   <title>VR Hände mit Greifbewegung</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
-  <script src="https://cdn.pubnub.com/pubnub-4.28.5.min.js"></script>
 </head>
 <body>
   <a-scene renderer="antialias: true" background="color: #333">
@@ -41,95 +40,55 @@
               oculus-touch-controls="hand: right; model: false">
     </a-entity>
 
-    <!-- Kamera (Kopf bewegt sich mit HMD) -->
-    <a-entity id="camera-container" position="0 1.6 0">
-      <a-camera id="camera" position="0 0 0"></a-camera>
-      <!-- Kopfmodell, das an die Kamera gebunden ist -->
-      <a-entity id="head" 
+    <!-- Kamera mit Kopf-Modell -->
+    <a-entity id="head" 
+              camera 
+              position="0 1.6 0">
+      <a-entity id="head-model"
                 obj-model="obj: url(head.obj)"
                 material="color: #bf9d7d"
                 scale="0.5 0.5 0.5"
-                position="0 0 0"
-                rotation="0 0 0">
+                position="0 0 0">
       </a-entity>
     </a-entity>
-
   </a-scene>
 
   <script>
-    // PubNub-Konfiguration
-    const playerId = 'player_' + Math.floor(Math.random() * 1000000);  // Zufällige ID für den Spieler
-    const pubnub = new PubNub({
-      publishKey: 'demo',  // Ersetze mit deinem Publish Key
-      subscribeKey: 'demo',  // Ersetze mit deinem Subscribe Key
-    });
+    // Wechsel der Handmodelle bei Greifbewegung
+    AFRAME.registerComponent('grip-change', {
+      init: function () {
+        const el = this.el;
+        this.isGripped = false; // Zustand des Griffs
 
-    // Der Channel, den du verwendest
-    const channel = 'puravida';
-
-    // Senden der Positions- und Rotationsdaten der Hände und des Kopfes
-    function sendPlayerData() {
-      const leftHand = document.querySelector('#left-hand');
-      const rightHand = document.querySelector('#right-hand');
-      const camera = document.querySelector('#camera');
-      const head = document.querySelector('#head');
-      
-      // Holen der Position und Rotation
-      const leftHandPos = leftHand.getAttribute('position');
-      const rightHandPos = rightHand.getAttribute('position');
-      const cameraPos = camera.getAttribute('position');
-      const headPos = head.getAttribute('position');
-      
-      const leftHandRot = leftHand.getAttribute('rotation');
-      const rightHandRot = rightHand.getAttribute('rotation');
-      const headRot = head.getAttribute('rotation');
-
-      const playerData = {
-        playerId: playerId,
-        leftHand: { position: leftHandPos, rotation: leftHandRot },
-        rightHand: { position: rightHandPos, rotation: rightHandRot },
-        head: { position: headPos, rotation: headRot },
-        camera: cameraPos
-      };
-
-      // Senden der Daten an PubNub
-      pubnub.publish({
-        channel: channel,
-        message: playerData
-      });
-    }
-
-    // Empfangen von anderen Spieler-Daten und Rendern
-    pubnub.addListener({
-      message: function(event) {
-        const data = event.message;
-        
-        // Wenn es eine andere ID ist, erstelle das Spieler-Modell
-        if (data.playerId !== playerId) {
-          let otherPlayer = document.querySelector(`#player-${data.playerId}`);
-          if (!otherPlayer) {
-            otherPlayer = document.createElement('a-entity');
-            otherPlayer.setAttribute('id', `player-${data.playerId}`);
-            otherPlayer.setAttribute('obj-model', 'obj: url(left.obj)');
-            otherPlayer.setAttribute('material', 'color: #bf9d7d');
-            otherPlayer.setAttribute('scale', '0.5 0.5 0.5');
-            document.querySelector('a-scene').appendChild(otherPlayer);
+        // Event, wenn der Grip gedrückt wird
+        el.addEventListener('gripdown', () => {
+          if (!this.isGripped) {
+            this.isGripped = true;
+            if (el.id === 'left-hand') {
+              el.setAttribute('obj-model', 'obj: url(leftg.obj)'); // Faust-Modell links
+            } else if (el.id === 'right-hand') {
+              el.setAttribute('obj-model', 'obj: url(rightg.obj)'); // Faust-Modell rechts
+            }
           }
+        });
 
-          // Setze die Position und Rotation des anderen Spielers
-          otherPlayer.setAttribute('position', data.leftHand.position);  // Beispiel für die linke Hand, anpassen je nach Bedarf
-          otherPlayer.setAttribute('rotation', data.leftHand.rotation);  // Beispiel für die linke Hand, anpassen je nach Bedarf
-        }
+        // Event, wenn der Grip losgelassen wird
+        el.addEventListener('gripup', () => {
+          if (this.isGripped) {
+            this.isGripped = false;
+            if (el.id === 'left-hand') {
+              el.setAttribute('obj-model', 'obj: url(left.obj)'); // Offene Hand links
+            } else if (el.id === 'right-hand') {
+              el.setAttribute('obj-model', 'obj: url(right.obj)'); // Offene Hand rechts
+            }
+          }
+        });
       }
     });
 
-    pubnub.subscribe({
-      channels: [channel]
-    });
-
-    // Sende die Daten in regelmäßigen Abständen
-    setInterval(sendPlayerData, 1000);  // Sende alle 1 Sekunde
-
+    // Füge die grip-change-Komponente zu den Hand-Entities hinzu
+    document.querySelector('#left-hand').setAttribute('grip-change', '');
+    document.querySelector('#right-hand').setAttribute('grip-change', '');
   </script>
 </body>
 </html>
