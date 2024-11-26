@@ -3,18 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VR Hände mit Bewegung</title>
+  <title>VR Hände mit Greifbewegung</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
 </head>
 <body>
-  <a-scene renderer="antialias: true" background="color: #333" vr-mode-ui="enabled: true">
+  <a-scene renderer="antialias: true" background="color: #333">
     <!-- Licht -->
     <a-light type="ambient" intensity="0.5"></a-light>
     <a-light type="directional" intensity="1" position="1 3 2"></a-light>
-
-    <!-- Gitterboden -->
-    <a-grid material="color: #555; metalness: 0.2; roughness: 0.8" height="10" width="10" position="0 0 0"></a-grid>
 
     <!-- Linke Hand -->
     <a-entity id="left-hand" 
@@ -40,42 +37,45 @@
               oculus-touch-controls="hand: right; model: false">
     </a-entity>
 
-    <!-- Kamera + Bewegung -->
-    <a-entity id="rig" position="0 1.6 0" movement-controls="speed: 0.1; fly: false">
-      <a-entity camera look-controls wasd-controls></a-entity>
-    </a-entity>
+    <!-- Kamera -->
+    <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
 
   <script>
+    // Wechsel der Handmodelle bei Greifbewegung
     AFRAME.registerComponent('grip-change', {
       init: function () {
+        // Referenz zur Hand
         const el = this.el;
-        this.isGripped = false;
+        this.isGripped = false; // Zustand des Griffs
 
+        // Event, wenn der Grip gedrückt wird
         el.addEventListener('gripdown', () => {
           if (!this.isGripped) {
-            this.isGripped = true;
+            this.isGripped = true; // Zustand aktualisieren
             if (el.id === 'left-hand') {
-              el.setAttribute('obj-model', 'obj: url(leftg.obj)');
+              el.setAttribute('obj-model', 'obj: url(leftg.obj)'); // Faust-Modell links
             } else if (el.id === 'right-hand') {
-              el.setAttribute('obj-model', 'obj: url(rightg.obj)');
+              el.setAttribute('obj-model', 'obj: url(rightg.obj)'); // Faust-Modell rechts
             }
           }
         });
 
+        // Event, wenn der Grip losgelassen wird
         el.addEventListener('gripup', () => {
           if (this.isGripped) {
-            this.isGripped = false;
+            this.isGripped = false; // Zustand aktualisieren
             if (el.id === 'left-hand') {
-              el.setAttribute('obj-model', 'obj: url(left.obj)');
+              el.setAttribute('obj-model', 'obj: url(left.obj)'); // Offene Hand links
             } else if (el.id === 'right-hand') {
-              el.setAttribute('obj-model', 'obj: url(right.obj)');
+              el.setAttribute('obj-model', 'obj: url(right.obj)'); // Offene Hand rechts
             }
           }
         });
       }
     });
 
+    // Füge die grip-change-Komponente zu den Hand-Entities hinzu
     document.querySelector('#left-hand').setAttribute('grip-change', '');
     document.querySelector('#right-hand').setAttribute('grip-change', '');
   </script>
