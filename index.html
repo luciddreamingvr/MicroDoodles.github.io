@@ -1,39 +1,6 @@
-<!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | Rochen League</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
-  </head>
-  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
-    <canvas id="unity-canvas" width="960" height="600" style="background: #231F20;"></canvas>
-    <script src="Build/Rochen League.loader.js"></script>
-    <script>
-      // Ensure mobile compatibility
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-
-        var canvas = document.querySelector("#unity-canvas");
-        canvas.style.width = "100%";
-        canvas.style.height = "100%";
-        canvas.style.position = "fixed";
-        document.body.style.textAlign = "left";
-      }
-
-      // Create Unity instance
-      createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/Rochen League.data.gz",
-        frameworkUrl: "Build/Rochen League.framework.js.gz",
-        codeUrl: "Build/Rochen League.wasm.gz",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "Rochen League",
-        productVersion: "0.1",
-      });
-    </script>
-  </body>
-</html>
+    <div id="dosbox"></div>
+    <br/>
+    <button onclick="dosbox.requestFullScreen();">Make fullscreen</button><br>
+<p>Click on Screen, Press Enter to start<br>
+  Arrows to move, Space to use, Ctrl to Fire<br><a href="http://doom.wikia.com/wiki/Controls" target=_b>More controls</a></p>
+   
