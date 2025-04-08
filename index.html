@@ -1,291 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ObbyBox2</title>
-    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.34.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
-        }
-
-        canvas {
-            display: block;
-            margin: 0 auto;
-        }
-
-        #nameForm {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-        }
-
-        #startButton {
-            border: none;
-            background-color: #007bff;
-            color: white;
-            padding: 10px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ObbyBox2</title>
+  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.34.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #f0f0f0;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-    <div id="nameForm">
-        <button id="startButton" onclick="startGame()">Start Game</button>
-    </div>
+  <canvas id="gameCanvas"></canvas>
 
-    <canvas id="gameCanvas"></canvas>
+  <script>
+    const publishKey = 'demo';
+    const subscribeKey = 'demo';
+    const channelName = 'puravida';
 
-    <script>
-        const publishKey = 'demo'; // Replace with your actual Publish Key
-        const subscribeKey = 'demo'; // Replace with your actual Subscribe Key
-        const channelName = 'puravida';
+    const pubnub = new PubNub({
+      publishKey,
+      subscribeKey,
+      uuid: PubNub.generateUUID()
+    });
 
-        const pubnub = new PubNub({
-            publishKey: publishKey,
-            subscribeKey: subscribeKey,
-            uuid: PubNub.generateUUID()
+    const canvas = document.getElementById('gameCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 2.5, 5);
+
+    const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
+    const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    const player = new THREE.Mesh(playerGeometry, playerMaterial);
+    player.visible = false;
+    scene.add(player);
+
+    const floorGeometry = new THREE.PlaneGeometry(50, 50);
+    const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    const keys = { w: false, a: false, s: false, d: false, space: false, left: false, right: false };
+    let velocityY = 0;
+    const gravity = -0.01;
+    const jumpStrength = 0.2;
+    let isGrounded = false;
+    let playerID = Math.floor(Math.random() * 10000);
+    let lastPosition = { x: 0, y: 0, z: 0, rotation: 0 };
+    const players = {};
+    const inactiveTime = 20000;
+
+    const rotationSpeed = 0.05; // Rotation per frame for arrow keys
+
+    function createPlayerFigure(color) {
+      const group = new THREE.Group();
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(1, 3, 32), new THREE.MeshBasicMaterial({ color }));
+      cone.position.y = -0.15;
+      group.add(cone);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), new THREE.MeshBasicMaterial({ color }));
+      head.position.y = 1.5;
+      group.add(head);
+
+      return group;
+    }
+
+    function updatePlayerPosition() {
+      if (keys.left) player.rotation.y += rotationSpeed;
+      if (keys.right) player.rotation.y -= rotationSpeed;
+
+      const forward = new THREE.Vector3();
+      const right = new THREE.Vector3();
+      const move = new THREE.Vector3();
+      const speed = 0.15;
+
+      player.getWorldDirection(forward);
+      forward.negate();
+      right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+      if (keys.w) move.add(forward.clone().multiplyScalar(speed));
+      if (keys.s) move.add(forward.clone().negate().multiplyScalar(speed));
+      if (keys.a) move.add(right.clone().negate().multiplyScalar(speed));
+      if (keys.d) move.add(right.clone().multiplyScalar(speed));
+
+      player.position.add(move);
+
+      velocityY += gravity;
+      player.position.y += velocityY;
+
+      if (player.position.y <= 1) {
+        player.position.y = 1;
+        velocityY = 0;
+        isGrounded = true;
+      } else {
+        isGrounded = false;
+      }
+
+      if (keys.space && isGrounded) {
+        velocityY = jumpStrength;
+        isGrounded = false;
+      }
+
+      camera.position.set(player.position.x, player.position.y + 1.5, player.position.z);
+      const lookDirection = new THREE.Vector3(0, 0, -1).applyEuler(player.rotation);
+      camera.lookAt(player.position.clone().add(lookDirection));
+
+      if (
+        player.position.x !== lastPosition.x ||
+        player.position.y !== lastPosition.y ||
+        player.position.z !== lastPosition.z ||
+        player.rotation.y !== lastPosition.rotation
+      ) {
+        pubnub.publish({
+          channel: channelName,
+          message: {
+            id: playerID,
+            x: player.position.x,
+            y: player.position.y,
+            z: player.position.z,
+            rotation: player.rotation.y
+          }
         });
 
-	const canvas = document.getElementById('gameCanvas');
-	const renderer = new THREE.WebGLRenderer({ canvas });
-	renderer.setSize(window.innerWidth, window.innerHeight);
+        lastPosition = { x: player.position.x, y: player.position.y, z: player.position.z, rotation: player.rotation.y };
+      }
+    }
 
-	const scene = new THREE.Scene();
-	scene.background = new THREE.Color(0x87CEEB); // Setzt den Hintergrund der Szene auf Himmelblau
+    function animate() {
+      requestAnimationFrame(animate);
+      updatePlayerPosition();
+      renderer.render(scene, camera);
+    }
 
-	const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-	camera.position.set(0, 1.5, 0); // Position the camera to match the player's height
-
-	// Player
-	const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
-	const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-	const player = new THREE.Mesh(playerGeometry, playerMaterial);
-	player.visible = false; // Hide player mesh for first-person view
-	scene.add(player);
-
-	// Floor
-	const floorGeometry = new THREE.PlaneGeometry(20, 20);
-	const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x808080, side: THREE.DoubleSide });
-	const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-	floor.rotation.x = - Math.PI / 2; // Make the plane horizontal
-	scene.add(floor);
-
-	// The rest of your code for player movement and PubNub setup remains unchanged
-
-        const keys = {
-            w: false,
-            a: false,
-            s: false,
-            d: false,
-            space: false
-        };
-
-        let playerID; // Player ID as a random number
-        let lastPosition = { x: player.position.x, y: player.position.y, z: player.position.z, rotation: player.rotation.y }; // Track last position
-
-        const players = {}; // Dictionary to hold positions and names of all players
-        const inactiveTime = 20000; // 20 seconds in milliseconds
-
-        // Physics-related variables
-        let velocityY = 0; // Vertical velocity
-        const gravity = -0.01; // Gravity acceleration
-        const jumpStrength = 0.2; // Jumping strength
-        let isGrounded = false; // Flag to check if the player is on the ground
-
-        // Mouse rotation
-        let rotationSpeed = 0.002;
-
-        function onMouseMove(event) {
-            if (document.pointerLockElement === canvas) {
-                const deltaX = event.movementX;
-
-                // Reverse the rotation direction
-                player.rotation.y -= deltaX * rotationSpeed;
-            }
+    pubnub.addListener({
+      message: function(msg) {
+        if (msg.publisher !== pubnub.getUUID()) {
+          const data = msg.message;
+          if (!players[data.id]) {
+            const figure = createPlayerFigure(0xff0000);
+            players[data.id] = figure;
+            scene.add(figure);
+          }
+          players[data.id].position.set(data.x, data.y, data.z);
+          players[data.id].rotation.y = data.rotation;
+          players[data.id].lastUpdate = Date.now();
         }
+      }
+    });
 
-        function startGame() {
-            // Generate a random player ID
-            playerID = Math.floor(Math.random() * 10000);
+    pubnub.subscribe({
+      channels: [channelName],
+      withPresence: true
+    });
 
-            // Hide name form
-            document.getElementById('nameForm').style.display = 'none';
-
-            // Request pointer lock
-            canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
-            canvas.requestPointerLock();
-
-            document.addEventListener('mousemove', onMouseMove);
-
-            animate();
+    setInterval(() => {
+      const now = Date.now();
+      for (const [id, mesh] of Object.entries(players)) {
+        if (now - mesh.lastUpdate >= inactiveTime) {
+          scene.remove(mesh);
+          delete players[id];
         }
+      }
+    }, 1000);
 
-        function updatePlayerPosition() {
-            const previousPosition = { ...player.position }; // Save the current position
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'w') keys.w = true;
+      if (e.key === 'a') keys.a = true;
+      if (e.key === 's') keys.s = true;
+      if (e.key === 'd') keys.d = true;
+      if (e.key === ' ') keys.space = true;
+      if (e.key === 'ArrowLeft') keys.left = true;
+      if (e.key === 'ArrowRight') keys.right = true;
+    });
 
-            const forward = new THREE.Vector3(); // Forward direction vector
-            const right = new THREE.Vector3();   // Right direction vector
-            const speed = 0.15;
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'w') keys.w = false;
+      if (e.key === 'a') keys.a = false;
+      if (e.key === 's') keys.s = false;
+      if (e.key === 'd') keys.d = false;
+      if (e.key === ' ') keys.space = false;
+      if (e.key === 'ArrowLeft') keys.left = false;
+      if (e.key === 'ArrowRight') keys.right = false;
+    });
 
-            // Determine direction based on player rotation
-            player.getWorldDirection(forward);
-            forward.negate(); // Reversed because the forward direction is negative in THREE.js
-
-            // Calculate the right direction (perpendicular to the forward direction)
-            right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-
-            // Initialize the movement vector
-            const move = new THREE.Vector3();
-
-            // Update move vector based on key presses
-            if (keys.w) move.add(forward.clone().multiplyScalar(speed)); // W key moves forward
-            if (keys.s) move.add(forward.clone().negate().multiplyScalar(speed)); // S key moves backward
-            if (keys.a) move.add(right.clone().negate().multiplyScalar(speed)); // A key strafes left
-            if (keys.d) move.add(right.clone().multiplyScalar(speed)); // D key strafes right
-
-            // Apply the calculated movement to the player's position
-            player.position.add(move);
-
-            // Apply gravity and vertical movement
-            velocityY += gravity; // Apply gravity to the vertical velocity
-            player.position.y += velocityY; // Update the player's vertical position
-
-            // Check if the player is on the ground
-            if (player.position.y <= 1) {
-                player.position.y = 1; // Reset player position to ground level
-                velocityY = 0; // Reset vertical velocity
-                isGrounded = true; // Player is on the ground
-            } else {
-                isGrounded = false; // Player is in the air
-            }
-
-            // Jumping
-            if (keys.space && isGrounded) {
-                velocityY = jumpStrength; // Apply jump strength to vertical velocity
-                isGrounded = false; // Player is in the air after jumping
-            }
-
-            // Update camera position and rotation to follow the player
-            camera.position.set(player.position.x, player.position.y + 1.5, player.position.z); // Adjust camera height to follow player
-            camera.rotation.y = player.rotation.y; // Match camera rotation to player rotation
-
-            // Check if the player moved
-            if (
-                player.position.x !== previousPosition.x ||
-                player.position.y !== previousPosition.y ||
-                player.position.z !== previousPosition.z ||
-                player.rotation.y !== lastPosition.rotation
-            ) {
-                pubnub.publish({
-                    channel: channelName,
-                    message: {
-                        id: playerID,
-                        x: player.position.x,
-                        y: player.position.y,
-                        z: player.position.z,
-                        rotation: player.rotation.y // Send rotation
-                    }
-                });
-
-                lastPosition = { ...player.position, rotation: player.rotation.y }; // Update last position
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            updatePlayerPosition();
-
-            renderer.render(scene, camera);
-        }
-
-        // Function to create a "Mensch ärgere dich nicht" figure
-        function createPlayerFigure(color) {
-            const group = new THREE.Group(); // A group to hold cone and sphere
-
-            // Cone for the body
-            const coneGeometry = new THREE.ConeGeometry(1, 3, 32);
-            const coneMaterial = new THREE.MeshBasicMaterial({ color: color });
-            const cone = new THREE.Mesh(coneGeometry, coneMaterial);
-            cone.position.y = -0.15; // Place the base of the cone at y=0
-            group.add(cone);
-
-            // Sphere for the head
-            const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-            const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
-            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sphere.position.y = 1 + 0.5; // Place the sphere on top of the cone
-            group.add(sphere);
-
-            return group;
-        }
-
-        // Function to add a new player
-        pubnub.addListener({
-            message: function(message) {
-                if (message.publisher !== pubnub.getUUID()) {
-                    const data = message.message;
-
-                    if (!players[data.id]) {
-                        // Create figure instead of a cube
-                        const playerFigure = createPlayerFigure(0xff0000);
-                        players[data.id] = playerFigure;
-                        scene.add(players[data.id]);
-                    }
-
-                    players[data.id].position.set(data.x, data.y, data.z);
-                    players[data.id].rotation.y = data.rotation; // Update rotation
-                    players[data.id].lastUpdate = Date.now();
-                }
-            }
-        });
-
-        pubnub.subscribe({
-            channels: [channelName],
-            withPresence: true
-        });
-
-        setInterval(() => {
-            const now = Date.now();
-            for (const [id, playerMesh] of Object.entries(players)) {
-                if (now - playerMesh.lastUpdate >= inactiveTime) {
-                    scene.remove(playerMesh); // Remove inactive players
-                    delete players[id];
-                }
-            }
-        }, 1000); // Check every second
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'w') keys.w = true;
-            if (e.key === 'a') keys.a = true;
-            if (e.key === 's') keys.s = true;
-            if (e.key === 'd') keys.d = true;
-            if (e.key === ' ') keys.space = true; // Space key for jumping
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'w') keys.w = false;
-            if (e.key === 'a') keys.a = false;
-            if (e.key === 's') keys.s = false;
-            if (e.key === 'd') keys.d = false;
-            if (e.key === ' ') keys.space = false; // Stop jumping when space key is released
-        });
-
-        canvas.addEventListener('click', () => {
-            canvas.requestPointerLock();
-        });
-    </script>
+    window.addEventListener('load', () => {
+      animate();
+    });
+  </script>
 </body>
 </html>
