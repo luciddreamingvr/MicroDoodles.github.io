@@ -1,257 +1,96 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Krieg auf der Osterinsel – Detlef’s Rache</title>
-  <link rel="icon" href="icon.png" type="image/png">
-
-  <!-- Open Graph Meta Tags für Social Media Vorschau -->
-  <meta property="og:title" content="Krieg auf der Osterinsel – Detlef’s Rache">
-  <meta property="og:description" content="Ein epischer Kampf im Nebel: Detlef kehrt zurück…">
-  <meta property="og:image" content="https://example.com/cover.jpg"> <!-- DEINE BILD-URL -->
-  <meta property="og:url" content="https://example.com/index.html"> <!-- DEINE SEITEN-URL -->
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-
-  <!-- Optional: fancy font -->
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&display=swap" rel="stylesheet">
-
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-        body {
-      background-color: #000;
-      background-image: url('bg.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      font-family: 'Cinzel', serif;
-      color: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
-      overflow: hidden;
-      text-align: center;
-      position: relative;
-      padding: 20px;
-    }
-    
-    /* Overlay zum Abdunkeln des Hintergrundbilds */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.6); /* Abdunkelung */
-      z-index: 0;
-      pointer-events: none;
-    }
-
-
-    h1 {
-      font-size: 2.8em;
-      max-width: 90%;
-      line-height: 1.3;
-      margin-bottom: 30px;
-      text-shadow:
-        0 0 10px #d99a6f,
-        0 0 20px #d99a6f,
-        0 0 30px #ff8c00;
-      animation: flicker 3s infinite;
-      z-index: 3;
-      position: relative;
-    }
-
-    .content {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      align-items: flex-start;
-      width: 100%;
-      max-width: 1200px;
-    }
-
-    .cover {
-      width: 600px;
-      max-width: 90%;
-      border-radius: 30px;
-      box-shadow: 0 0 100px rgba(211, 211, 211, 0.5);
-      animation: pulse 5s infinite ease-in-out;
-      position: relative;
-      z-index: 1;
-      overflow: hidden;
-    }
-
-    .cover img {
-      width: 100%;
-      display: block;
-      border-radius: 30px;
-    }
-
-    .cover::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
-      pointer-events: none;
-      border-radius: 30px;
-      z-index: 2;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 0 100px rgba(211, 211, 211, 0.5);
-      }
-      50% {
-        transform: scale(1.03);
-        box-shadow: 0 0 130px rgba(211, 211, 211, 0.8);
-      }
-    }
-
-    @keyframes flicker {
-      0%, 100% { opacity: 1; }
-      45% { opacity: 0.9; }
-      48% { opacity: 0.6; }
-      50% { opacity: 0.85; }
-      52% { opacity: 0.7; }
-      55% { opacity: 1; }
-    }
-
-    /* Panel für die Beschreibung */
-    .description-panel {
-      background-color: rgba(0, 0, 0, 0.8);
-      width: 40%;
-      height: 80%;
-      margin-left: 20px;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(255, 165, 0, 0.7);
-      color: #f0f0f0;
-      font-size: 1.1em;
-      line-height: 1.6;
-      overflow-y: auto;
-      z-index: 2;
-      position: relative;
-      text-align: left;
-    }
-
-    .description-panel p {
-      text-shadow: 0 0 5px #d99a6f, 0 0 10px #ff8c00;
-    }
-
-    #startAudioBtn {
-      background-color: #2a2a2a;
-      color: #fff;
-      border: 2px solid #fff;
-      padding: 15px 30px;
-      font-size: 1.2em;
-      font-family: 'Cinzel', serif;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-      margin-top: 30px;
-      z-index: 3;
-      position: relative;
-    }
-
-    #startAudioBtn:hover {
-      background-color: #1a1a1a;
-      transform: scale(1.1);
-      box-shadow: 0 0 15px 3px rgba(255, 255, 255, 0.7);
-    }
-
-    #startAudioBtn:focus {
-      outline: none;
-    }
-
-    /* Nebel-Effekt fog1 */
-    .fog1 {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 200%;
-      height: 80%;
-      background: url('fog1.png') repeat-x;
-      opacity: 1;
-      animation: moveFog1 20s linear infinite;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    @keyframes moveFog1 {
-      0% { background-position: 0 0; }
-      100% { background-position: -100vw 0; }
-    }
-
-    /* Nebel-Effekt fog2 */
-    .fog2 {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 200%;
-      height: 50%;
-      background: url('fog2.png') repeat-x;
-      opacity: 0.6;
-      animation: moveFog2 40s linear infinite;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    @keyframes moveFog2 {
-      0% { background-position: 0 0; }
-      100% { background-position: 100vw 0; }
-    }
-
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fliegender Cube im Raum</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets/dist/manifest.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
+    <script>
+        let scene, camera, renderer, cube;
+        let controller1, controller2;
+        let raycaster, intersectedObject = null;
 
-  <h1>Krieg auf der Osterinsel<br>Detlef’s Rache</h1>
+        // Initialisierung der Szene, Kamera und Renderer
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-  <!-- Hauptinhalt mit Cover und Panel -->
-  <div class="content">
-    <div class="cover">
-      <img src="cover.jpg" alt="Cover Image">
-    </div>
+            // Cube erstellen
+            const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
 
-    <!-- Beschreibung Panel -->
-    <div class="description-panel">
-      <p>In der Steinzeit regiert Detlef als mächtiger Anführer auf der Osterinsel. Doch als die uralten Moai-Statuen sich plötzlich gegen ihn wenden und von einer geheimen Macht kontrolliert werden, entfacht ein gewaltiger Krieg. Detlef, wütend und verzweifelt, führt seine Krieger in den Kampf gegen die steinernen Riesen. Doch der wahre Endboss wartet auf dem Hügel: The Rock, ein übernatürlicher Krieger aus Vulkanstein. Der epische Showdown zwischen Detlef und The Rock entscheidet über das Schicksal der Insel, während Vulkane ausbrechen und die Erde bebt. Wer wird den Krieg gewinnen und die Macht über die Osterinsel behalten?</p>
-    </div>
-  </div>
+            // Licht hinzufügen
+            const light = new THREE.AmbientLight(0x404040); // Soft white light
+            scene.add(light);
 
-  <!-- Nebel-Effekte -->
-  <div class="fog1"></div>
-  <div class="fog2"></div>
+            // Raycaster für Interaktionen
+            raycaster = new THREE.Raycaster();
+        }
 
-  <!-- Audio und Play-Button unter dem Panel -->
-  <audio id="backgroundAudio" loop muted>
-    <source src="song.mp3" type="audio/mpeg">
-    Dein Browser unterstützt das Audio-Element nicht.
-  </audio>
+        // Die XR-Sitzung starten
+        async function startXR() {
+            const xr = await navigator.xr.requestSession('immersive-ar', {
+                requiredFeatures: ['hit-test', 'local', 'hand-tracking'],
+                optionalFeatures: ['controller']
+            });
 
-  <button id="startAudioBtn">Musik abspielen</button>
+            const gl = renderer.getContext();
+            xr.addEventListener('end', onXRSessionEnded);
+            xr.requestReferenceSpace('local').then(onXRReferenceSpaceReady);
+            renderer.xr.enabled = true;
+            renderer.xr.setReferenceSpaceType('local');
+            renderer.xr.setSession(xr);
+        }
 
-  <script>
-    document.getElementById('startAudioBtn').addEventListener('click', function () {
-      var audio = document.getElementById('backgroundAudio');
-      audio.muted = false;
-      audio.play();
-      this.style.display = 'none';
-    });
-  </script>
+        function onXRReferenceSpaceReady(referenceSpace) {
+            // Funktion für XR-Interaktionen
+            cube.position.set(0, 0, -1); // Setze den Cube 1 Meter vor der Kamera
+            animate();
+        }
 
+        function animate() {
+            // Animation für den Cube
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+            
+            renderer.render(scene, camera);
+            renderer.setAnimationLoop(animate);
+        }
+
+        // Interaktionen mit dem Controller
+        function updateControllers() {
+            if (controller1 && controller1.inputSource) {
+                // Hier könnte der Controller für Interaktionen genutzt werden
+            }
+        }
+
+        // Event-Listener für die WebXR-Session
+        function onXRSessionEnded() {
+            console.log("XR Session beendet");
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start der App
+        init();
+        startXR();
+
+    </script>
 </body>
 </html>
