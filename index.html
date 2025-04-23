@@ -1,294 +1,294 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Drawlex</title>
-  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.29.3.js"></script>
-  <style>
-    body {
-      background-color: #1b1b1f;
-      color: #ffffff;
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      width: 90%;
-      max-width: 850px;
-    }
-    #paintCanvas {
-      border: 2px solid #292a36;
-      background: #0c0c10;
-      border-radius: 10px;
-      box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.2);
-      cursor: crosshair;
-    }
-    #controls, #aspectControls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      width: 100%;
-    }
-    input, button {
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
-      background-color: #292a36;
-      color: #00ffff;
-      font-size: 1rem;
-      outline: none;
-    }
-    button:hover {
-      background-color: #00cccc;
-      transform: scale(1.05);
-    }
-    label {
-      color: #ccccff;
-      font-size: 0.9rem;
-    }
-    #coordinates {
-      color: #00ffff;
-      font-size: 1rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawlex</title>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.29.3.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1b1b1f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 90%;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        #paintCanvas {
+            border: 2px solid #292a36;
+            cursor: crosshair;
+            background-color: #0c0c10;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.2);
+        }
+
+        #controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: #ccccff;
+        }
+
+        input, button {
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            background-color: #292a36;
+            color: #00ffff;
+            outline: none;
+            font-size: 1rem;
+            box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00cccc;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        #coordinates {
+            font-size: 1rem;
+            text-align: center;
+            color: #00ffff;
+            margin-top: 10px;
+        }
+
+        #aspectControls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div id="aspectControls">
-      <label>Width:</label>
-      <input type="number" id="widthInput" min="100" value="800">
-      <label>Height:</label>
-      <input type="number" id="heightInput" min="100" value="600">
-      <button onclick="updateCanvasSize()">Set Size</button>
+    <div class="container">
+        <div id="aspectControls">
+            <label for="widthInput">Width:</label>
+            <input type="number" id="widthInput" min="100" value="800">
+            <label for="heightInput">Height:</label>
+            <input type="number" id="heightInput" min="100" value="600">
+            <button onclick="updateCanvasSize()">Set Aspect Ratio</button>
+        </div>
+
+        <canvas id="paintCanvas" width="800" height="600"></canvas>
+
+        <div id="controls">
+            <div class="control-group">
+                <label for="hexColor">HEX</label>
+                <input type="text" id="hexColor" value="#00ffff" maxlength="7" placeholder="#00ffff">
+            </div>
+            <div class="control-group">
+                <label for="sizePicker">Size</label>
+                <input type="range" id="sizePicker" min="5" max="50" value="15">
+            </div>
+            <button onclick="clearCanvas()">Empty</button>
+            <button onclick="saveProject()">Save</button>
+            <button onclick="fileInput.click()">Load</button>
+            <button onclick="mixPoints()">Mix</button>
+            <input type="file" id="fileInput" style="display: none;" accept=".sxs" onchange="handleFileImport(event)">
+            <button onclick="exportImage()">Export</button>
+        </div>
+
+        <div id="coordinates">(X: 0, Y: 0)</div>
     </div>
 
-    <canvas id="paintCanvas" width="800" height="600"></canvas>
+    <script>
+        const pubnub = new PubNub({
+            publishKey: 'demo',
+            subscribeKey: 'demo',
+            uuid: 'user_' + Math.random().toString(36).substr(2, 9)
+        });
 
-    <div id="controls">
-      <button onclick="undo()">Undo</button>
-      <button onclick="redo()">Redo</button>
-      <button onclick="toggleGrid()">Grid On/Off</button>
-      <input type="color" id="hexColor" value="#00ffff">
-      <input type="range" id="sizePicker" min="5" max="50" value="15">
-      <button onclick="clearCanvas()">Clear</button>
-      <button onclick="saveProject()">Save</button>
-      <button onclick="fileInput.click()">Load</button>
-      <input type="file" id="fileInput" accept=".sxs" style="display: none;" onchange="handleFileImport(event)">
-      <button onclick="exportImage()">Export</button>
-    </div>
+        const canvas = document.getElementById("paintCanvas");
+        const ctx = canvas.getContext("2d");
+        const hexColor = document.getElementById("hexColor");
+        const sizePicker = document.getElementById("sizePicker");
+        const coordinatesDiv = document.getElementById("coordinates");
+        const fileInput = document.getElementById("fileInput");
 
-    <div id="coordinates">(X: 0, Y: 0)</div>
-  </div>
+        let painting = false;
+        const drawDataList = [];
 
-  <script>
-    const canvas = document.getElementById("paintCanvas");
-    const ctx = canvas.getContext("2d");
-    const hexColor = document.getElementById("hexColor");
-    const sizePicker = document.getElementById("sizePicker");
-    const coordinatesDiv = document.getElementById("coordinates");
-    const fileInput = document.getElementById("fileInput");
+        function updateCanvasSize() {
+            const width = parseInt(document.getElementById("widthInput").value);
+            const height = parseInt(document.getElementById("heightInput").value);
 
-    let painting = false;
-    let showGrid = true;
-    const drawDataList = [];
-    const undoStack = [];
-    const redoStack = [];
-    const myUUID = 'user_' + Math.random().toString(36).substr(2, 9);
-
-    const pubnub = new PubNub({
-      publishKey: 'demo',
-      subscribeKey: 'demo',
-      uuid: myUUID
-    });
-
-    pubnub.subscribe({ channels: ['puravida'] });
-
-    pubnub.addListener({
-      message(event) {
-        const data = event.message;
-        if (!data || event.publisher === myUUID) return;
-        drawFromData(data);
-        drawDataList.push(data);
-      }
-    });
-
-    canvas.addEventListener("mousedown", startPosition);
-    canvas.addEventListener("mouseup", endPosition);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseleave", endPosition);
-
-    function getMousePosition(e) {
-      const rect = canvas.getBoundingClientRect();
-      return [e.clientX - rect.left, e.clientY - rect.top];
-    }
-
-    function startPosition(e) {
-      painting = true;
-      draw(e, true);
-    }
-
-    function endPosition() {
-      painting = false;
-      ctx.beginPath();
-    }
-
-    function draw(e, emit = false) {
-      if (!painting) return;
-      const [x, y] = getMousePosition(e);
-      const size = parseInt(sizePicker.value);
-      const density = 60;
-      const color = hexColor.value;
-      ctx.fillStyle = color;
-
-      for (let i = 0; i < density; i++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.random() * size;
-        const dx = Math.cos(angle) * radius;
-        const dy = Math.sin(angle) * radius;
-        ctx.fillRect(x + dx, y + dy, 1, 1);
-      }
-
-      const drawData = { x, y, size, density, color };
-      if (emit) {
-        pubnub.publish({ channel: 'puravida', message: drawData });
-        drawDataList.push(drawData);
-        pushToUndoStack();
-      }
-
-      coordinatesDiv.innerText = `(X: ${Math.round(x)}, Y: ${Math.round(y)})`;
-    }
-
-    function drawFromData(data) {
-      ctx.fillStyle = data.color;
-      for (let i = 0; i < data.density; i++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.random() * data.size;
-        const dx = Math.cos(angle) * radius;
-        const dy = Math.sin(angle) * radius;
-        ctx.fillRect(data.x + dx, data.y + dy, 1, 1);
-      }
-    }
-
-    function clearCanvas(save = true) {
-      if (save) pushToUndoStack();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (showGrid) drawGrid();
-    }
-
-    function drawGrid() {
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 0.5;
-      for (let x = 0; x <= canvas.width; x += 20) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y <= canvas.height; y += 20) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-    }
-
-    function toggleGrid() {
-      showGrid = !showGrid;
-      clearCanvas(false);
-      drawDataList.forEach(drawFromData);
-    }
-
-    function updateCanvasSize() {
-      const width = parseInt(document.getElementById("widthInput").value);
-      const height = parseInt(document.getElementById("heightInput").value);
-      if (width > 0 && height > 0) {
-        canvas.width = width;
-        canvas.height = height;
-        clearCanvas(false);
-        drawDataList.forEach(drawFromData);
-      }
-    }
-
-    function pushToUndoStack() {
-      undoStack.push(JSON.stringify(drawDataList));
-      if (undoStack.length > 50) undoStack.shift();
-      redoStack.length = 0;
-    }
-
-    function undo() {
-      if (undoStack.length === 0) return;
-      redoStack.push(JSON.stringify(drawDataList));
-      const last = undoStack.pop();
-      const parsed = JSON.parse(last);
-      drawDataList.length = 0;
-      drawDataList.push(...parsed);
-      clearCanvas(false);
-      drawDataList.forEach(drawFromData);
-    }
-
-    function redo() {
-      if (redoStack.length === 0) return;
-      undoStack.push(JSON.stringify(drawDataList));
-      const next = redoStack.pop();
-      const parsed = JSON.parse(next);
-      drawDataList.length = 0;
-      drawDataList.push(...parsed);
-      clearCanvas(false);
-      drawDataList.forEach(drawFromData);
-    }
-
-    function saveProject() {
-      const blob = new Blob([JSON.stringify(drawDataList)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "drawing.sxs";
-      a.click();
-    }
-
-    function handleFileImport(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          drawDataList.length = 0;
-          drawDataList.push(...data);
-          clearCanvas(false);
-          drawDataList.forEach(drawFromData);
-        } catch (err) {
-          alert("Fehler beim Laden der Datei.");
+            if (width > 0 && height > 0) {
+                canvas.width = width;
+                canvas.height = height;
+                clearCanvas();
+            }
         }
-      };
-      reader.readAsText(file);
-    }
 
-    function exportImage() {
-      const prevGrid = showGrid;
-      showGrid = false;
-      clearCanvas(false);
-      drawDataList.forEach(drawFromData);
-      const dataURL = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = dataURL;
-      a.download = "drawing.png";
-      a.click();
-      showGrid = prevGrid;
-      clearCanvas(false);
-      drawDataList.forEach(drawFromData);
-    }
+        function drawGrid() {
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x <= canvas.width; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
 
-    // Initial
-    drawGrid();
-  </script>
+        function startPosition(e) {
+            painting = true;
+            draw(e);
+        }
+
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
+
+        function getMousePosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            return [e.clientX - rect.left, e.clientY - rect.top];
+        }
+
+        function draw(e) {
+            if (!painting) return;
+            const [x, y] = getMousePosition(e);
+            const spraySize = sizePicker.value;
+            const sprayDensity = 60;
+            ctx.fillStyle = hexColor.value;
+
+            for (let i = 0; i < sprayDensity; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * spraySize;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetY = Math.sin(angle) * radius;
+                ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
+            }
+
+            const drawData = { x, y, color: hexColor.value, size: spraySize, density: sprayDensity };
+            drawDataList.push(drawData);
+            pubnub.publish({ channel: 'puravida', message: drawData });
+        }
+
+        function drawFromData(data) {
+            ctx.fillStyle = data.color;
+            for (let i = 0; i < data.density; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * data.size;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetY = Math.sin(angle) * radius;
+                ctx.fillRect(data.x + offsetX, data.y + offsetY, 1, 1);
+            }
+        }
+
+        pubnub.subscribe({ channels: ['puravida'] });
+
+        pubnub.addListener({
+            message(event) {
+                if (event.publisher !== pubnub.getUUID()) {
+                    drawFromData(event.message);
+                    drawDataList.push(event.message);
+                }
+            }
+        });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawDataList.length = 0;
+        }
+
+        function mixPoints() {
+            const mixAmount = 5;
+            const newDrawDataList = drawDataList.map(data => ({
+                ...data,
+                x: data.x + (Math.random() * mixAmount - mixAmount / 2),
+                y: data.y + (Math.random() * mixAmount - mixAmount / 2)
+            }));
+
+            clearCanvas();
+            newDrawDataList.forEach(drawFromData);
+            drawDataList.splice(0, drawDataList.length, ...newDrawDataList);
+        }
+
+        function saveProject() {
+            const blob = new Blob([JSON.stringify(drawDataList)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "project.sxs";
+            a.click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    clearCanvas();
+                    data.forEach(drawData => {
+                        drawFromData(drawData);
+                        drawDataList.push(drawData);
+                    });
+                } catch (err) {
+                    alert("Ungültige Datei.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportImage() {
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.href = image;
+            link.download = "drawing.png";
+            link.click();
+        }
+
+        canvas.addEventListener("mousedown", startPosition);
+        canvas.addEventListener("mouseup", endPosition);
+        canvas.addEventListener("mousemove", draw);
+
+        drawGrid();
+    </script>
 </body>
 </html>
+
