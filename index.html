@@ -3,94 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fliegender Cube im Raum</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets/dist/manifest.js"></script>
+    <title>Drawlex</title>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.29.3.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1b1b1f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 90%;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        #paintCanvas {
+            border: 2px solid #292a36;
+            cursor: crosshair;
+            background-color: #0c0c10;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.2);
+        }
+
+        #controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: #ccccff;
+        }
+
+        input, button {
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            background-color: #292a36;
+            color: #00ffff;
+            outline: none;
+            font-size: 1rem;
+            box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00cccc;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        #coordinates {
+            font-size: 1rem;
+            text-align: center;
+            color: #00ffff;
+            margin-top: 10px;
+        }
+
+        #aspectControls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <div id="aspectControls">
+            <label for="widthInput">Width:</label>
+            <input type="number" id="widthInput" min="100" value="800">
+            <label for="heightInput">Height:</label>
+            <input type="number" id="heightInput" min="100" value="600">
+            <button onclick="updateCanvasSize()">Set Aspect Ratio</button>
+        </div>
+
+        <canvas id="paintCanvas" width="800" height="600"></canvas>
+
+        <div id="controls">
+            <div class="control-group">
+                <label for="hexColor">HEX</label>
+                <input type="text" id="hexColor" value="#00ffff" maxlength="7" placeholder="#00ffff">
+            </div>
+            <div class="control-group">
+                <label for="sizePicker">Size</label>
+                <input type="range" id="sizePicker" min="5" max="50" value="15">
+            </div>
+            <button onclick="clearCanvas()">Empty</button>
+            <button onclick="saveProject()">Save</button>
+            <button onclick="loadProject()">Load</button>
+            <button onclick="mixPoints()">Mix</button>
+            <input type="file" id="fileInput" style="display: none;" accept=".sxs" onchange="handleFileImport(event)">
+            <button onclick="exportImage()">Export</button>
+        </div>
+
+        <div id="coordinates">(X: 0, Y: 0)</div>
+    </div>
+
     <script>
-        let scene, camera, renderer, cube;
-        let controller1, controller2;
-        let raycaster, intersectedObject = null;
+        const pubnub = new PubNub({
+            publishKey: 'demo',
+            subscribeKey: 'demo',
+            uuid: 'user_' + Math.random().toString(36).substr(2, 9)
+        });
 
-        // Initialisierung der Szene, Kamera und Renderer
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
+        const canvas = document.getElementById("paintCanvas");
+        const ctx = canvas.getContext("2d");
+        const hexColor = document.getElementById("hexColor");
+        const sizePicker = document.getElementById("sizePicker");
+        const coordinatesDiv = document.getElementById("coordinates");
+        const fileInput = document.getElementById("fileInput");
 
-            // Cube erstellen
-            const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-            cube = new THREE.Mesh(geometry, material);
-            scene.add(cube);
+        let painting = false;
+        const drawDataList = [];
 
-            // Licht hinzufügen
-            const light = new THREE.AmbientLight(0x404040); // Soft white light
-            scene.add(light);
+        function updateCanvasSize() {
+            const widthInput = document.getElementById("widthInput");
+            const heightInput = document.getElementById("heightInput");
 
-            // Raycaster für Interaktionen
-            raycaster = new THREE.Raycaster();
-        }
+            const width = parseInt(widthInput.value);
+            const height = parseInt(heightInput.value);
 
-        // Die XR-Sitzung starten
-        async function startXR() {
-            const xr = await navigator.xr.requestSession('immersive-ar', {
-                requiredFeatures: ['hit-test', 'local', 'hand-tracking'],
-                optionalFeatures: ['controller']
-            });
-
-            const gl = renderer.getContext();
-            xr.addEventListener('end', onXRSessionEnded);
-            xr.requestReferenceSpace('local').then(onXRReferenceSpaceReady);
-            renderer.xr.enabled = true;
-            renderer.xr.setReferenceSpaceType('local');
-            renderer.xr.setSession(xr);
-        }
-
-        function onXRReferenceSpaceReady(referenceSpace) {
-            // Funktion für XR-Interaktionen
-            cube.position.set(0, 0, -1); // Setze den Cube 1 Meter vor der Kamera
-            animate();
-        }
-
-        function animate() {
-            // Animation für den Cube
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
-            
-            renderer.render(scene, camera);
-            renderer.setAnimationLoop(animate);
-        }
-
-        // Interaktionen mit dem Controller
-        function updateControllers() {
-            if (controller1 && controller1.inputSource) {
-                // Hier könnte der Controller für Interaktionen genutzt werden
+            if (width > 0 && height > 0) {
+                canvas.width = width;
+                canvas.height = height;
+                clearCanvas();
             }
         }
 
-        // Event-Listener für die WebXR-Session
-        function onXRSessionEnded() {
-            console.log("XR Session beendet");
+        function drawGrid() {
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 0.5;
+
+            for (let x = 0; x <= canvas.width; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = 0; y <= canvas.height; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        function startPosition(e) {
+            painting = true;
+            draw(e);
+        }
 
-        // Start der App
-        init();
-        startXR();
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
 
+        function draw(e) {
+            if (!painting) return;
+            const [x, y] = getMousePosition(e);
+            const spraySize = sizePicker.value;
+            const sprayDensity = 60;
+            ctx.fillStyle = hexColor.value;
+
+            for (let i = 0; i < sprayDensity; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * spraySize;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetY = Math.sin(angle) * radius;
+                ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
+            }
+
+            const drawData = { x, y, color: hexColor.value, size: spraySize, density: sprayDensity };
+
+            pubnub.publish({ channel: 'puravida', message: drawData });
+            drawDataList.push(drawData);
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawDataList.length = 0;
+        }
+
+        function getMousePosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            return [x, y];
+        }
+
+        function mixPoints() {
+            const mixAmount = 5; // Wie viel die Punkte verschoben werden
+            const newDrawDataList = drawDataList.map(data => {
+                return {
+                    ...data,
+                    x: data.x + (Math.random() * mixAmount - mixAmount / 2),
+                    y: data.y + (Math.random() * mixAmount - mixAmount / 2)
+                };
+            });
+
+            clearCanvas();
+            newDrawDataList.forEach(drawData => {
+                ctx.fillStyle = drawData.color;
+
+                for (let i = 0; i < drawData.density; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * drawData.size;
+                    const offsetX = Math.cos(angle) * radius;
+                    const offsetY = Math.sin(angle) * radius;
+
+                    ctx.fillRect(drawData.x + offsetX, drawData.y + offsetY, 1, 1);
+                }
+            });
+
+            drawDataList.splice(0, drawDataList.length, ...newDrawDataList);
+        }
+
+        drawGrid();
+        canvas.addEventListener("mousedown", startPosition);
+        canvas.addEventListener("mouseup", endPosition);
+        canvas.addEventListener("mousemove", draw);
     </script>
 </body>
 </html>
