@@ -75,18 +75,21 @@
     </style>
   </head>
   <body>
+    <!-- Audio-Element für harp.aiff -->
+    <audio id="harpAudio" src="harp.aiff" preload="auto"></audio>
+
     <div id="settings">
       <h2>Lucid Dreaming VR</h2>
-      <label>Rest Time (min)</label>
+      <label>Rest Time</label>
       <input type="number" id="restTime" value="10" min="1" />
       
       <label>Frequency</label>
       <input type="number" id="frequency" value="3" min="1" />
       
-      <label>Intensity (%)</label>
+      <label>Intensity</label>
       <input type="number" id="intensity" value="100" min="1" max="100" />
       
-      <label>Duration (s)</label>
+      <label>Duration</label>
       <input type="number" id="duration" value="0.3" min="0.1" step="0.1" />
       
       <button id="startBtn">Start Dream</button>
@@ -100,6 +103,7 @@
     <script>
       const sky = document.getElementById('sky');
       const startBtn = document.getElementById('startBtn');
+      const harpAudio = document.getElementById('harpAudio');
 
       function getRedHex(intensityPercent) {
         const value = Math.round((intensityPercent / 100) * 255);
@@ -108,6 +112,10 @@
       }
 
       startBtn.addEventListener('click', () => {
+        // Harfenklang abspielen
+        harpAudio.currentTime = 0;
+        harpAudio.play();
+
         const restMinutes = parseFloat(document.getElementById('restTime').value);
         const restTimeMs = restMinutes * 60 * 1000;
         const frequency = parseInt(document.getElementById('frequency').value);
