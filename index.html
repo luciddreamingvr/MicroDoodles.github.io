@@ -6,15 +6,21 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   </head>
   <body>
-    <a-scene background="color: #000000">
+    <a-scene background="color: #000000" embedded>
       <a-entity id="sky" geometry="primitive: sphere; radius: 5000"
                 material="side: back; color: #000000"></a-entity>
     </a-scene>
 
     <script>
+      // === Einstellungen ===
+      const intervalMinutes = 10;        // Dauer bis zum nächsten Blinken (in Minuten)
+      const blinkCount = 3;              // Wie oft soll geblinkt werden
+      const redBrightness = 1.0;         // Helligkeit von Rot (0.0 bis 1.0)
+      const blinkDuration = 300;         // Dauer eines einzelnen Blinks (in ms)
+
       const sky = document.getElementById('sky');
       const originalColor = '#000000';
-      const blinkColor = '#ff0000';
+      const blinkColor = `rgb(${Math.floor(255 * redBrightness)}, 0, 0)`;
 
       function blinkSequence() {
         let count = 0;
@@ -23,7 +29,7 @@
           sky.setAttribute('animation__color', {
             property: 'material.color',
             to: blinkColor,
-            dur: 300,
+            dur: blinkDuration,
             easing: 'easeInOutQuad'
           });
 
@@ -31,21 +37,23 @@
             sky.setAttribute('animation__color', {
               property: 'material.color',
               to: originalColor,
-              dur: 300,
+              dur: blinkDuration,
               easing: 'easeInOutQuad'
             });
-          }, 300);
+          }, blinkDuration);
 
           count++;
-          if (count < 3) {
-            setTimeout(blink, 1000);
+          if (count < blinkCount) {
+            setTimeout(blink, blinkDuration * 2);
           }
         };
 
         blink();
       }
 
-      setInterval(blinkSequence, 600000); // Alle 10 Minuten
+      // Intervall in Millisekunden
+      const interval = intervalMinutes * 60 * 1000;
+      setInterval(blinkSequence, interval);
     </script>
   </body>
 </html>
