@@ -24,20 +24,20 @@
   <body>
     <div id="settings">
       <label>
-        Dauer bis zum nächsten Blinken (ms):<br />
-        <input type="number" id="interval" value="600000" />
+        Rest Time (Minuten):<br />
+        <input type="number" id="restTime" value="10" min="1" />
       </label><br /><br />
       <label>
-        Blinkfrequenz (Anzahl Wiederholungen):<br />
-        <input type="number" id="frequency" value="3" />
+        Frequency (Blink-Anzahl):<br />
+        <input type="number" id="frequency" value="3" min="1" />
       </label><br /><br />
       <label>
-        Rot-Helligkeit (Hex-Wert, z. B. #ff0000):<br />
-        <input type="text" id="blinkColor" value="#ff0000" />
+        Intensity (% Rot-Helligkeit):<br />
+        <input type="number" id="intensity" value="100" min="1" max="100" />
       </label><br /><br />
       <label>
-        Blinklänge (ms):<br />
-        <input type="number" id="duration" value="300" />
+        Duration (Sekunden):<br />
+        <input type="number" id="duration" value="0.3" min="0.1" step="0.1" />
       </label><br /><br />
       <button id="startBtn">Start</button>
     </div>
@@ -51,11 +51,21 @@
       const sky = document.getElementById('sky');
       const startBtn = document.getElementById('startBtn');
 
+      function getRedHex(intensityPercent) {
+        const value = Math.round((intensityPercent / 100) * 255);
+        const hex = value.toString(16).padStart(2, '0');
+        return `#${hex}0000`;
+      }
+
       startBtn.addEventListener('click', () => {
-        const interval = parseInt(document.getElementById('interval').value);
+        const restMinutes = parseFloat(document.getElementById('restTime').value);
+        const restTimeMs = restMinutes * 60 * 1000;
         const frequency = parseInt(document.getElementById('frequency').value);
-        const blinkColor = document.getElementById('blinkColor').value;
-        const duration = parseInt(document.getElementById('duration').value);
+        const intensity = parseInt(document.getElementById('intensity').value);
+        const durationSec = parseFloat(document.getElementById('duration').value);
+        const durationMs = durationSec * 1000;
+
+        const blinkColor = getRedHex(intensity);
         const originalColor = '#000000';
 
         function blinkSequence() {
@@ -65,7 +75,7 @@
             sky.setAttribute('animation__color', {
               property: 'material.color',
               to: blinkColor,
-              dur: duration,
+              dur: durationMs,
               easing: 'easeInOutQuad'
             });
 
@@ -73,25 +83,22 @@
               sky.setAttribute('animation__color', {
                 property: 'material.color',
                 to: originalColor,
-                dur: duration,
+                dur: durationMs,
                 easing: 'easeInOutQuad'
               });
-            }, duration);
+            }, durationMs);
 
             count++;
             if (count < frequency) {
-              setTimeout(blink, duration * 2);
+              setTimeout(blink, durationMs * 2);
             }
           };
 
           blink();
         }
 
-        // Start sofort
         blinkSequence();
-
-        // Danach in Intervallen
-        setInterval(blinkSequence, interval);
+        setInterval(blinkSequence, restTimeMs);
         document.getElementById('settings').style.display = 'none';
       });
     </script>
