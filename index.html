@@ -13,47 +13,65 @@
     </style>
   </head>
   <body>
-    <a-scene>
-      <!-- Kamera -->
+    <a-scene id="scene" background="color: black">
       <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
     </a-scene>
 
     <script>
-      const scene = document.querySelector('a-scene');
+      const scene = document.querySelector('#scene');
+      const THREE = AFRAME.THREE;
+      let currentColor = new THREE.Color(0x000000);
+      let targetColor = new THREE.Color(0xff0000);
 
-      function fadeBlinkSky() {
-        let i = 0;
-
-        function singleBlink() {
-          if (i >= 3) return;
-
-          // Fade to red
-          scene.setAttribute('animation__toRed', {
-            property: 'background.color',
-            to: '#ff0000',
-            dur: 200,
-            easing: 'easeInOutQuad'
-          });
-
-          // Fade back to black after short delay
-          setTimeout(() => {
-            scene.setAttribute('animation__toBlack', {
-              property: 'background.color',
-              to: '#000000',
-              dur: 400,
-              easing: 'easeInOutQuad'
-            });
-          }, 200);
-
-          i++;
-          setTimeout(singleBlink, 600); // 3 Blinks spaced by 600ms
-        }
-
-        singleBlink();
+      function lerpColor(a, b, t) {
+        return new THREE.Color(
+          a.r + (b.r - a.r) * t,
+          a.g + (b.g - a.g) * t,
+          a.b + (b.b - a.b) * t
+        );
       }
 
-      // Trigger every 10 seconds
-      setInterval(fadeBlinkSky, 10000);
+      function fadeTo(color, duration = 300, callback) {
+        const start = performance.now();
+        const initial = currentColor.clone();
+
+        function animate(time) {
+          const t = Math.min((time - start) / duration, 1);
+          const lerped = lerpColor(initial, color, t);
+          currentColor.copy(lerped);
+          scene.renderer.setClearColor(currentColor);
+          if (t < 1) {
+            requestAnimationFrame(animate);
+          } else if (callback) {
+            callback();
+          }
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      function doBlinkSequence() {
+        let count = 0;
+
+        function blink() {
+          if (count >= 3) return;
+          fadeTo(targetColor, 200, () => {
+            setTimeout(() => {
+              fadeTo(new THREE.Color(0x000000), 400, () => {
+                count++;
+                setTimeout(blink, 200); // Pause before next blink
+              });
+            }, 100);
+          });
+        }
+
+        blink();
+      }
+
+      scene.addEventListener('renderstart', () => {
+        scene.renderer.setClearColor(currentColor); // Initial set
+        setInterval(doBlinkSequence, 10000); // Every 10 seconds
+      });
     </script>
   </body>
 </html>
