@@ -75,7 +75,7 @@
     </style>
   </head>
   <body>
-    <!-- Audio-Element für harp.aiff -->
+    <!-- Audio Element -->
     <audio id="harpAudio" src="harp.wav" preload="auto"></audio>
 
     <div id="settings">
@@ -112,9 +112,18 @@
       }
 
       startBtn.addEventListener('click', () => {
-        // Harfenklang abspielen
+        console.log("Start button clicked. Attempting to play audio.");
+
+        // Try to play the harp sound
         harpAudio.currentTime = 0;
-        harpAudio.play();
+        harpAudio.play()
+          .then(() => {
+            console.log("Audio playback started.");
+          })
+          .catch((error) => {
+            console.error("Audio playback failed:", error);
+            alert("Audio konnte nicht abgespielt werden. Prüfe den Dateipfad und Browser-Einstellungen.");
+          });
 
         const restMinutes = parseFloat(document.getElementById('restTime').value);
         const restTimeMs = restMinutes * 60 * 1000;
