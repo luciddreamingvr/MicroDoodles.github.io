@@ -4,56 +4,96 @@
     <meta charset="utf-8" />
     <title>Lucid Dreaming VR</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <style>
+      #settings {
+        position: absolute;
+        z-index: 1;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+        font-family: sans-serif;
+      }
+      #startBtn {
+        margin-top: 10px;
+      }
+    </style>
   </head>
   <body>
-    <a-scene background="color: #000000" embedded>
+    <div id="settings">
+      <label>
+        Dauer bis zum nächsten Blinken (ms):<br />
+        <input type="number" id="interval" value="600000" />
+      </label><br /><br />
+      <label>
+        Blinkfrequenz (Anzahl Wiederholungen):<br />
+        <input type="number" id="frequency" value="3" />
+      </label><br /><br />
+      <label>
+        Rot-Helligkeit (Hex-Wert, z. B. #ff0000):<br />
+        <input type="text" id="blinkColor" value="#ff0000" />
+      </label><br /><br />
+      <label>
+        Blinklänge (ms):<br />
+        <input type="number" id="duration" value="300" />
+      </label><br /><br />
+      <button id="startBtn">Start</button>
+    </div>
+
+    <a-scene background="color: #000000">
       <a-entity id="sky" geometry="primitive: sphere; radius: 5000"
                 material="side: back; color: #000000"></a-entity>
     </a-scene>
 
     <script>
-      // === Einstellungen ===
-      const intervalMinutes = 10;        // Dauer bis zum nächsten Blinken (in Minuten)
-      const blinkCount = 3;              // Wie oft soll geblinkt werden
-      const redBrightness = 1.0;         // Helligkeit von Rot (0.0 bis 1.0)
-      const blinkDuration = 300;         // Dauer eines einzelnen Blinks (in ms)
-
       const sky = document.getElementById('sky');
-      const originalColor = '#000000';
-      const blinkColor = `rgb(${Math.floor(255 * redBrightness)}, 0, 0)`;
+      const startBtn = document.getElementById('startBtn');
 
-      function blinkSequence() {
-        let count = 0;
+      startBtn.addEventListener('click', () => {
+        const interval = parseInt(document.getElementById('interval').value);
+        const frequency = parseInt(document.getElementById('frequency').value);
+        const blinkColor = document.getElementById('blinkColor').value;
+        const duration = parseInt(document.getElementById('duration').value);
+        const originalColor = '#000000';
 
-        const blink = () => {
-          sky.setAttribute('animation__color', {
-            property: 'material.color',
-            to: blinkColor,
-            dur: blinkDuration,
-            easing: 'easeInOutQuad'
-          });
+        function blinkSequence() {
+          let count = 0;
 
-          setTimeout(() => {
+          const blink = () => {
             sky.setAttribute('animation__color', {
               property: 'material.color',
-              to: originalColor,
-              dur: blinkDuration,
+              to: blinkColor,
+              dur: duration,
               easing: 'easeInOutQuad'
             });
-          }, blinkDuration);
 
-          count++;
-          if (count < blinkCount) {
-            setTimeout(blink, blinkDuration * 2);
-          }
-        };
+            setTimeout(() => {
+              sky.setAttribute('animation__color', {
+                property: 'material.color',
+                to: originalColor,
+                dur: duration,
+                easing: 'easeInOutQuad'
+              });
+            }, duration);
 
-        blink();
-      }
+            count++;
+            if (count < frequency) {
+              setTimeout(blink, duration * 2);
+            }
+          };
 
-      // Intervall in Millisekunden
-      const interval = intervalMinutes * 60 * 1000;
-      setInterval(blinkSequence, interval);
+          blink();
+        }
+
+        // Start sofort
+        blinkSequence();
+
+        // Danach in Intervallen
+        setInterval(blinkSequence, interval);
+        document.getElementById('settings').style.display = 'none';
+      });
     </script>
   </body>
 </html>
