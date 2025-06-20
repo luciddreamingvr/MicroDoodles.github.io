@@ -1,173 +1,79 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Lucid Dreaming VR</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-      body {
-        margin: 0;
-        font-family: 'Orbitron', sans-serif;
-        overflow: hidden;
-      }
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PuraVida Game Browser</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: #fff;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #00ffcc;
+    }
+    .game-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .game-card {
+      background: #2c2c3c;
+      border-radius: 12px;
+      padding: 16px;
+      width: 200px;
+      box-shadow: 0 0 10px #00000066;
+    }
+    .game-card h2 {
+      font-size: 18px;
+      margin: 0 0 10px;
+    }
+    .game-card button {
+      background: #00ffcc;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .game-card button:hover {
+      background: #00ddaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>PuraVida Games</h1>
+  <div class="game-list" id="gameList"></div>
 
-      #settings {
-        position: absolute;
-        z-index: 1;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(15, 15, 30, 0.95);
-        padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-        color: #ffffff;
-        text-align: center;
-        width: 300px;
-        animation: fadeIn 1.2s ease-out;
-      }
+  <script>
+    // Liste deiner Spiele (jeweils eine .lvld Datei)
+    const games = [
+      { name: "Maze Madness", file: "game1.lvld" },
+      { name: "Dungeon Escape", file: "game2.lvld" },
+      { name: "Castle Builder", file: "game3.lvld" }
+    ];
 
-      label {
-        display: block;
-        margin: 15px 0 5px;
-        font-size: 1rem;
-      }
+    const gameList = document.getElementById("gameList");
 
-      input[type="number"] {
-        width: 100%;
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: none;
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        font-size: 1rem;
-        outline: none;
-        box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.2);
-      }
+    games.forEach(game => {
+      const card = document.createElement("div");
+      card.className = "game-card";
+      card.innerHTML = `
+        <h2>${game.name}</h2>
+        <button onclick="downloadLevel('${game.file}')">Play</button>
+      `;
+      gameList.appendChild(card);
+    });
 
-      input[type="number"]::-webkit-inner-spin-button {
-        opacity: 0.4;
-      }
-
-      #startBtn {
-        margin-top: 25px;
-        padding: 12px 25px;
-        font-size: 1rem;
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        color: white;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 12px rgba(255, 75, 43, 0.4);
-      }
-
-      #startBtn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 16px rgba(255, 75, 43, 0.6);
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translate(-50%, -60%); }
-        to { opacity: 1; transform: translate(-50%, -50%); }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Audio Element -->
-    <audio id="harpAudio" src="harp.mp3" preload="auto"></audio>
-
-    <div id="settings">
-      <h2>Lucid Dreaming VR</h2>
-      <label>Rest Time</label>
-      <input type="number" id="restTime" value="10" min="1" />
-      
-      <label>Frequency</label>
-      <input type="number" id="frequency" value="3" min="1" />
-      
-      <label>Intensity</label>
-      <input type="number" id="intensity" value="100" min="1" max="100" />
-      
-      <label>Duration</label>
-      <input type="number" id="duration" value="0.3" min="0.1" step="0.1" />
-      
-      <button id="startBtn">Start Dream</button>
-    </div>
-
-    <a-scene background="color: #000000">
-      <a-entity id="sky" geometry="primitive: sphere; radius: 5000"
-                material="side: back; color: #000000"></a-entity>
-    </a-scene>
-
-    <script>
-      const sky = document.getElementById('sky');
-      const startBtn = document.getElementById('startBtn');
-      const harpAudio = document.getElementById('harpAudio');
-
-      function getRedHex(intensityPercent) {
-        const value = Math.round((intensityPercent / 100) * 255);
-        const hex = value.toString(16).padStart(2, '0');
-        return `#${hex}0000`;
-      }
-
-      startBtn.addEventListener('click', () => {
-        console.log("Start button clicked. Attempting to play audio.");
-
-        // Try to play the harp sound
-        harpAudio.currentTime = 0;
-        harpAudio.play()
-          .then(() => {
-            console.log("Audio playback started.");
-          })
-          .catch((error) => {
-            console.error("Audio playback failed:", error);
-            alert("Audio konnte nicht abgespielt werden. Prüfe den Dateipfad und Browser-Einstellungen.");
-          });
-
-        const restMinutes = parseFloat(document.getElementById('restTime').value);
-        const restTimeMs = restMinutes * 60 * 1000;
-        const frequency = parseInt(document.getElementById('frequency').value);
-        const intensity = parseInt(document.getElementById('intensity').value);
-        const durationSec = parseFloat(document.getElementById('duration').value);
-        const durationMs = durationSec * 1000;
-
-        const blinkColor = getRedHex(intensity);
-        const originalColor = '#000000';
-
-        function blinkSequence() {
-          let count = 0;
-
-          const blink = () => {
-            sky.setAttribute('animation__color', {
-              property: 'material.color',
-              to: blinkColor,
-              dur: durationMs,
-              easing: 'easeInOutQuad'
-            });
-
-            setTimeout(() => {
-              sky.setAttribute('animation__color', {
-                property: 'material.color',
-                to: originalColor,
-                dur: durationMs,
-                easing: 'easeInOutQuad'
-              });
-            }, durationMs);
-
-            count++;
-            if (count < frequency) {
-              setTimeout(blink, durationMs * 2);
-            }
-          };
-
-          blink();
-        }
-
-        blinkSequence();
-        setInterval(blinkSequence, restTimeMs);
-        document.getElementById('settings').style.display = 'none';
-      });
-    </script>
-  </body>
+    function downloadLevel(filename) {
+      const a = document.createElement("a");
+      a.href = filename;
+      a.download = filename;
+      a.click();
+    }
+  </script>
+</body>
 </html>
